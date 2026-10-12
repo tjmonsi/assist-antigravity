@@ -2,7 +2,7 @@
 
 ## Overview
 
-assist-plugin is a token-optimized Google Antigravity plugin providing orchestration, 14 specialized subagents, and 18 focused skills for end-to-end software development workflows. It is the Antigravity port of the Claude Code plugin of the same name ([assist-marketplace-plugin](https://github.com/tjmonsi/assist-marketplace-plugin)).
+assist-plugin is a token-optimized Google Antigravity plugin providing orchestration, 14 specialized subagents, and 19 focused skills for end-to-end software development workflows. It is the Antigravity port of the Claude Code plugin of the same name ([assist-marketplace-plugin](https://github.com/tjmonsi/assist-marketplace-plugin)).
 
 **Models:** Each subagent's `model` field sets its tier. The shipped `gemini` profile puts reviewer, code-reviewer, researcher, and solutions-architect on `pro` and every other agent on `flash`; the `inherit` profile makes every subagent follow Antigravity's model selector. Skills run on the main agent's selected model. See [model-routing.md](../skills/do/references/model-routing.md).
 
@@ -168,7 +168,7 @@ assist-plugin is a token-optimized Google Antigravity plugin providing orchestra
 
 ---
 
-## Skills (18 Total)
+## Skills (19 Total)
 
 The full skill list appears in the [README.md](../README.md) table. Below are skill categories with detailed specifications.
 
@@ -179,8 +179,8 @@ The full skill list appears in the [README.md](../README.md) table. Below are sk
 **Workflow:**
 1. Classify the incoming task (primary intent, scope, output type)
 2. Match to agent using registry
-3. Create execution plan with each agent's tier
-4. Get approval with `ask_question` (tier changes go through `set-model-profile.sh`)
+3. Clarify ambiguities, create the execution plan, and show it in chat as a step table with each agent's tier
+4. Get approval in one `ask_question` call (approve, edit steps, or cancel); edits re-show the plan and ask again. Tier changes go through `set-model-profile.sh` and a restart
 5. Delegate with `invoke_subagent`, concurrently where steps are independent, with review loops
 6. Synthesize results
 
@@ -189,7 +189,7 @@ The full skill list appears in the [README.md](../README.md) table. Below are sk
 
 **Key features:**
 - Concurrent subagents (max 3) for non-overlapping or read-only steps; overlapping code writes run sequentially in workspace `inherit` (`branch` is not used until worktree merge-back is verified)
-- Tier reporting before approval
+- Step table with each agent's tier shown before approval
 - Plan-based execution
 - Review gate enforcement
 
@@ -269,8 +269,8 @@ The full skill list appears in the [README.md](../README.md) table. Below are sk
 **Purpose:** Generate and update documentation
 
 **Subcommands:**
-- `docs` — Create user/developer documentation
-- `readme` — Generate or update README
+- `docs`: Create user/developer documentation
+- `readme`: Generate or update README
 
 **Runs on:** main agent (selected model)  
 **Effort:** medium
@@ -334,8 +334,8 @@ The full skill list appears in the [README.md](../README.md) table. Below are sk
 **Purpose:** Review markdown reports for factual soundness, consistency, and conciseness
 
 **Modes:**
-- Manual — invoked directly on any report file
-- Automated — auto-invoked after report-producing skills (`ask`, `debug`, `pr-review`, `technical-writing`, `bump`, `map-project`, `commit`, `branch`, `do`) before the report reaches the user
+- Manual: invoked directly on any report file
+- Automated: auto-invoked after report-producing skills (`ask`, `debug`, `pr-review`, `technical-writing`, `bump`, `map-project`, `commit`, `branch`, `do`) before the report reaches the user
 
 **Runs on:** main agent (selected model)  
 **Effort:** medium
@@ -343,6 +343,20 @@ The full skill list appears in the [README.md](../README.md) table. Below are sk
 **Constraints:**
 - Read-only on the reviewed file; never edits it
 - Produces a separate findings artifact using the three-part structure (what's wrong, why it matters, what to change)
+
+---
+
+### deslop
+**Command:** `/deslop [edit | detect] <file-or-text>`  
+**Purpose:** Remove AI writing tells from prose; edit returns cleaned text, detect lists findings
+
+**Modes:**
+- `edit`: returns the cleaned text (inline) or edits the named file; keeps quotations, facts, and the writer's voice
+- `detect`: lists each finding as `<line>: <tell-id> "<excerpt>" | Fix: <fix>` and changes nothing
+
+**Constraints:**
+- Prose files only (`.md`, `.mdx`, `.txt`, `.rst`, `.adoc`)
+- Rules come from [rules/writing-standard.md](../rules/writing-standard.md); the skill reads for word-level tells and for the structural ones no fixed pattern catches
 
 ---
 

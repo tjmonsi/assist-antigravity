@@ -5,7 +5,7 @@ Guidance for agents and contributors working in this repo.
 ## Repo identity
 
 - **Repo:** `tjmonsi/assist-antigravity`
-- **Plugin:** `plugins/assist-plugin` (Antigravity plugin name `assist-plugin`, port of upstream v1.7.0)
+- **Plugin:** `plugins/assist-plugin` (Antigravity plugin name `assist-plugin`, port of upstream v1.8.0)
 - **Upstream:** [`tjmonsi/assist-marketplace-plugin`](https://github.com/tjmonsi/assist-marketplace-plugin), the Claude Code version; local checkout expected at `../assist-marketplace-plugin`
 - **Install:** `agy plugin install https://github.com/tjmonsi/assist-antigravity/plugins/assist-plugin` (stages to `~/.gemini/config/plugins/assist-plugin/` on `agy` 1.3.3, the same folder `scripts/install.sh --global` writes; CLI users use `agy plugin install`, Antigravity 2.0 and IDE users use `install.sh`)
 - **License:** AGPL-3.0-or-later ([LICENSE](LICENSE), [NOTICE](NOTICE)). The 1.5.0-antigravity port was licensed under MIT and was not published; from 1.7.0-antigravity the port is licensed under AGPL-3.0-or-later. New scripts start with `# SPDX-License-Identifier: AGPL-3.0-or-later` and `# Copyright (C) 2026 Toni-Jan Keith Monserrat` after the shebang; markdown files carry no SPDX header
@@ -20,11 +20,12 @@ Do not rename the plugin folder or the `name` in `plugin.json`. The install URL,
 plugins/assist-plugin/
 ├── plugin.json          # {"name", "version", "description"}
 ├── agents/<name>.md     # 14 subagents
-├── skills/<name>/       # 18 skills: SKILL.md + optional references/
-├── rules/*.md           # every rule needs `trigger` frontmatter, under 24,000 bytes
+├── skills/<name>/       # 19 skills: SKILL.md + optional references/
+├── rules/*.md           # 5 rules; every rule needs `trigger` frontmatter, under 24,000 bytes
 └── docs/                # SPECIFICATION, ARCHITECTURE, standards
 scripts/
 ├── validate.py          # static format checker (stdlib only)
+├── sync-writing-standard.py # copies the compact writing rules into every RWS block
 ├── set-model-profile.sh # agent -> tier table and profile switcher
 └── install.sh           # folder-copy installer for Antigravity 2.0 / IDE
 ```
@@ -71,6 +72,12 @@ To remove an agent, delete its file, remove it from the tier table, remove its r
 
 Ship skills only. Antigravity retires workflows on 2026-10-19.
 
+## Writing standard
+
+`plugins/assist-plugin/rules/writing-standard.md` is the source of truth for how agents and skills write (`trigger: model_decision`). `rules/writing-standard-compact.md` holds the always-on bullets (`trigger: always_on`), and every `## Report Writing Standard` block in `agents/` and `skills/` is a copy of those bullets. To change a rule, edit `writing-standard.md`, then the compact rule, then run `python3 scripts/sync-writing-standard.py`. Never edit a Report Writing Standard block by hand; `validate.py` reports any block that differs from the compact rule as an `ERROR`. A new agent or skill that writes reports gets the block by adding the `## Report Writing Standard` heading and running the script.
+
+The compact rule's first body line scopes it to prose and gives project and user instructions precedence. Keep that line: the rule loads into every conversation in every workspace with the plugin installed.
+
 ## Keeping counts in sync
 
 When an agent or skill is added, removed, or renamed, update the counts and lists in:
@@ -92,6 +99,8 @@ Run the validator and fix every `ERROR`:
 ```bash
 python3 scripts/validate.py
 ```
+
+The validator includes the writing-standard drift check. If it reports a drifted Report Writing Standard block, run `python3 scripts/sync-writing-standard.py` (or `--check` to list drift without writing).
 
 If the `agy` CLI is installed, also run Antigravity's structural check:
 
@@ -146,7 +155,10 @@ There is no automated sync. To port an upstream change:
    | `type`, `effort` in agent frontmatter | drop (note effort in the body) |
    | `CLAUDE.md`, `.claude/settings*.json` | `AGENTS.md`, `plugin.json`, `hooks.json`, `mcp_config.json`, `.agents/**` |
    | `skills/*/metadata.json` | delete |
-   | hooks (`hooks/*.js`, `hooks/hooks.json`) | no port: Antigravity hook payloads do not identify the calling agent, there is no plugin-root variable or SessionStart event, and the effect of a no-match result is undocumented. Restrict the agent's tools and put the command-shape rules in skill text instead, without claiming a hook enforces them |
+   | hooks (`hooks/*.js`, `hooks/hooks.json`) | no port: Antigravity hook payloads do not identify the calling agent, there is no plugin-root variable, PostToolUse cannot read or change tool results, there is no SessionStart, SubagentStart, or UserPromptSubmit event, and the effect of a no-match PreToolUse result is undocumented. Restrict the agent's tools and put the command-shape and untrusted-content rules in skill or rule text instead, without claiming a hook enforces or filters anything. Upstream's `writing-context` hook becomes the `always_on` rule `rules/writing-standard-compact.md` |
+   | `output-styles/` | drop: Antigravity plugins have no output styles |
+   | `scripts/sync-writing-standard.js` | `scripts/sync-writing-standard.py` (repository root, stdlib Python), checked by `validate.py` |
+   | `hooks/lib/prose-rules.js` links | point at "Mechanical tiers" in `rules/writing-standard.md` |
    | `allowed-tools` pre-approval, "pre-approved", "prompts" | no pre-approval; write "safe read-only form" for read-only commands and "run only after the user confirms" for anything that runs repo-controlled code or needs network |
    | `EnterWorktree` / `ExitWorktree`, `isolation: "worktree"` | drop; `/do` uses workspace `inherit` and creates no worktrees |
 

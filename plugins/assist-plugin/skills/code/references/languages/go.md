@@ -33,7 +33,7 @@
 
 - Prefer generics (Go 1.18+) over `interface{}` / `any` for reusable collections and utilities: `func Map[T, U any](in []T, fn func(T) U) []U`
 - Use type constraints (`comparable`, custom interfaces) to narrow generic parameters instead of accepting `any`
-- Zero values must be valid and safe — a zero-value `struct` should not panic when used
+- Zero values must be valid and safe; a zero-value `struct` should not panic when used
 - Prefer small, focused interfaces (1-3 methods) defined at the point of use, not alongside the implementation
 - Embed interfaces/structs for composition instead of simulating inheritance
 - Use `errors.Is` / `errors.As` for typed error inspection; never string-match errors
@@ -55,7 +55,7 @@ Always pass `context.Context` as the first parameter through every I/O call chai
 
 ```go
 func (s *UserService) Create(ctx context.Context, payload CreateUserInput) (*User, error) {
-    return s.repo.Insert(ctx, payload) // correct — propagates caller's context
+    return s.repo.Insert(ctx, payload) // correct: propagates caller's context
 }
 ```
 

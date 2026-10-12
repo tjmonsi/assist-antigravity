@@ -1,4 +1,4 @@
-# REST CRUD — JavaScript (Express)
+# REST CRUD: JavaScript (Express)
 
 Full Create/Read/Update/Delete endpoint set with `zod` validation and
 centralized error handling. See
@@ -78,7 +78,7 @@ export default router;
 ## Central Error Handler
 
 ```javascript
-// error-handler.js — register last, after all routes
+// error-handler.js: register last, after all routes
 export function errorHandler(err, req, res, next) {
   logger.error("unhandled request error", { path: req.path, error: err.message, stack: err.stack });
   res.status(err.statusCode ?? 500).json({ message: "Internal server error" });
@@ -91,7 +91,7 @@ export function errorHandler(err, req, res, next) {
   `400` with issue details instead of letting bad input reach business logic.
 - `asyncHandler` wraps every async route so rejected promises reach Express's
   error middleware instead of crashing the process unhandled.
-- Register the error handler with four arguments (`(err, req, res, next)`) —
+- Register the error handler with four arguments (`(err, req, res, next)`);
   Express identifies error middleware by arity.
 - Never leak stack traces or internal error messages to clients; log full
   detail server-side per [../../logging-standards.md](../../logging-standards.md),

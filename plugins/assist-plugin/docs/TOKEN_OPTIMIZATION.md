@@ -18,16 +18,17 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 **Why:** Full agent coverage ensures task routing flexibility without off-loading to external plugins.
 
-### Skills (18)
-- `do` (orchestrator) — replaces `run` with streamlined logic
-- `debug` — replaces `debug-code` with token-optimized workflow
-- `bump` — semantic versioning & changelog generation
-- `pr-review` — GitHub/Bitbucket PR review with auto-detection
-- `commit`, `branch` — essential git operations
-- `map-project` — project discovery
-- `technical-writing` — documentation generation
-- `ask`, `gather-requirements`, `spec-from-requirements`, `task-plan`, `review-md`, `create-test` — user-invocable Q&A, requirements, spec, planning, review, and test skills
-- `code`, `pentest`, `integrated-test`, `run-test` — internal skills preloaded by developer and qa
+### Skills (19)
+- `do` (orchestrator): replaces `run` with leaner logic
+- `debug`: replaces `debug-code` with token-optimized workflow
+- `bump`: semantic versioning & changelog generation
+- `pr-review`: GitHub/Bitbucket PR review with auto-detection
+- `commit`, `branch`: essential git operations
+- `map-project`: project discovery
+- `technical-writing`: documentation generation
+- `ask`, `gather-requirements`, `spec-from-requirements`, `task-plan`, `review-md`, `create-test`: user-invocable Q&A, requirements, spec, planning, review, and test skills
+- `deslop`: AI-writing-tell removal
+- `code`, `pentest`, `integrated-test`, `run-test`: internal skills preloaded by developer and qa
 
 **Why:** Minimal viable skill set covering 80% of common tasks.
 
@@ -36,10 +37,10 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 > **Note:** `bump` generates a full categorized CHANGELOG.md. software-development's `release-version` only bumps version numbers. The extra token cost reflects added functionality.
 
 ### References (Consolidated)
-- `agent-registry.md` — 1 source of truth for all agents
-- `model-routing.md` — Model assignment rules (table format)
-- `plan-format.md` — Plan template (compact)
-- `review-protocol.md` — Review workflow (essential steps only)
+- `agent-registry.md`: 1 source of truth for all agents
+- `model-routing.md`: Model assignment rules (table format)
+- `plan-format.md`: Plan template (compact)
+- `review-protocol.md`: Review workflow (essential steps only)
 
 **Why:** Centralized references eliminate duplication and reduce lookup time.
 
@@ -65,7 +66,7 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 ### Hooks & CI Infrastructure
 - **Why excluded:** Git hooks, CI pipelines, and project-specific automation belong to each project; governance is in rules
-- **Antigravity port:** ships no hooks. `sa-mermaid-only` needs the calling agent's identity, which Antigravity hook payloads do not carry. `health-check` needs a SessionStart event and plugin data, which Antigravity does not document. `doc-cli-guard` is deferred pending a live test of its no-match decision. The command-shape rules they enforced live in skill and agent text instead
+- **Antigravity port:** ships no hooks. `sa-mermaid-only` needs the calling agent's identity, which Antigravity hook payloads do not carry. `health-check` needs a SessionStart event and plugin data, which Antigravity does not document. `doc-cli-guard` is deferred pending a live test of its no-match decision. The command-shape rules they enforced live in skill and agent text instead. Upstream v1.8.0's `injection-filter`, `prose-gate`, and `prose-advisor` are not ported either: Antigravity's PostToolUse hook cannot read or change a tool result, and a PreToolUse write gate would need a decision on every file write. The compact writing standard loads as an `always_on` rule (`rules/writing-standard-compact.md`, 1,504 bytes; with `assist-routing.md` (936 bytes) the always-on rules total 2,440 bytes) in place of upstream's `writing-context` hook. Upstream's `terse` output style has no Antigravity equivalent <!-- claude-ref-ok -->
 - **Alternative:** Implement hooks in your git repo or CI/CD
 
 ### Examples & Tutorials
@@ -136,7 +137,7 @@ It runs on the build tier by default. Its tools are view_file, write_to_file, re
 | Aspect | assist-plugin | software-development | Ratio |
 |--------|---------------|----------------------|-------|
 | Agents | 14 | 12 | 117% |
-| Skills | 18 | 20+ | 90% |
+| Skills | 19 | 20+ | 95% |
 | Reference files | 4 | 20+ | 20% |
 | Documentation | 3 pages | 50+ pages | 6% |
 | **Plugin size** | ~2.5k | ~4.0k | **62%** |

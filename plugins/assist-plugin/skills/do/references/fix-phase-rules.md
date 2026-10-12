@@ -30,7 +30,7 @@ Antigravity sets a subagent's model from its agent file, so the orchestrator mee
 
 ## Rule 2: Identified Items Only
 
-"Identified items" means the reviewer's specific, itemized findings — nothing else.
+"Identified items" means the reviewer's specific, itemized findings, nothing else.
 
 ### What Counts as an Identified Item
 
@@ -70,7 +70,7 @@ If any item fails this checklist, remove the unrelated change before resubmittin
 ```
 File: src/services/user-service.ts
 Line: 42
-Issue: Null-pointer risk — `user.profile.email` accessed without checking `user.profile` exists
+Issue: Null-pointer risk: `user.profile.email` accessed without checking `user.profile` exists
 ```
 
 **Allowed fix:**
@@ -105,13 +105,13 @@ If the fixing agent adds unrelated changes:
 3. Fixing agent runs the Modification Checklist before submitting
 4. Fixing agent submits diff scoped strictly to findings
 5. Orchestrator passes the scoped `git diff -- <files>`, the fix delta (`git diff <before> <after> -- . ':(exclude).agent'` between the pre-fix and post-fix tree snapshots, see [review-protocol.md](review-protocol.md#fix-delta-snapshots) for fallbacks without `HEAD` or without git), and the findings list to the reviewer; reviewer re-audits: verifies findings resolved AND scans the fix delta for unrelated changes
-6. Unrelated changes present → reject, re-iterate (step 2)
-7. Diff scoped correctly and findings resolved → proceed to next review iteration
+6. Unrelated changes present: reject, re-iterate (step 2)
+7. Diff scoped correctly and findings resolved: proceed to next review iteration
 
 ---
 
 ## See Also
 
-- [review-protocol.md](review-protocol.md) — Full review gate workflow and iteration tracking
-- [model-routing.md](model-routing.md) — Model tier assignment for all agents
-- [developer-self-review.md](developer-self-review.md) — Pre-review self-audit checklist
+- [review-protocol.md](review-protocol.md): Full review gate workflow and iteration tracking
+- [model-routing.md](model-routing.md): Model tier assignment for all agents
+- [developer-self-review.md](developer-self-review.md): Pre-review self-audit checklist

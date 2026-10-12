@@ -120,18 +120,9 @@ The orchestrator (`do`) runs on the model the user selected in Antigravity's mod
 
 ## Model Tier Changes
 
-Before plan approval, the `do` orchestrator reports each planned agent's tier, read from the `model` field in its agent file:
+The `do` orchestrator shows the plan table (agent, model, effort, and order per step) in chat, with each agent's tier read from the `model` field in its agent file, and asks the user to Approve, Edit steps, or Cancel. See [SKILL.md Step 4](../SKILL.md#step-4-get-user-approval) for the approval and edit loop.
 
-```
-Plan includes these agents:
-- developer [build: flash]
-- reviewer [review: pro]
-- qa [build: flash]
-
-Change model tiers? (y/n)
-```
-
-The agent file's `model:` line overrode `invoke_subagent`'s per-call `Model` parameter in every test on `agy` 1.3.3, so the orchestrator omits `Model`, and a change means editing the agent file's `model:` line or running `scripts/set-model-profile.sh <gemini|inherit|gemini-pro|gemini-flash> [plugin-dir]` from the assist-antigravity repository before execution starts.
+The approval offers no model change. The agent file's `model:` line overrode `invoke_subagent`'s per-call `Model` parameter in every test on `agy` 1.3.3, so the orchestrator omits `Model`, and a change means editing the agent file's `model:` line or running `scripts/set-model-profile.sh <gemini|inherit|gemini-pro|gemini-flash> [plugin-dir]` from the assist-antigravity repository, then restarting Antigravity before `/do` runs again.
 
 **Guidance:**
 - Prefer the build tier plus one extra review iteration over moving work to `pro`

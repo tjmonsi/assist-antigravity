@@ -4,11 +4,11 @@
 
 assist-plugin follows these core principles:
 
-1. **Orchestration over monolith** — One skill (`do`) routes to 14 specialized subagents
-2. **Agent specialization** — Each agent handles one domain; no overlapping responsibilities
-3. **Model routing** — Task complexity determines the subagent tier (review, build, fast), mapped to Antigravity's `pro`/`flash`/`inherit` by a profile
-4. **Review gates** — Security + testing + code review checkpoints before merge
-5. **Token efficiency** — Centralized references, link-based docs, table-driven data
+1. **Orchestration over monolith**: One skill (`do`) routes to 14 specialized subagents
+2. **Agent specialization**: Each agent handles one domain; no overlapping responsibilities
+3. **Model routing**: Task complexity determines the subagent tier (review, build, fast), mapped to Antigravity's `pro`/`flash`/`inherit` by a profile
+4. **Review gates**: Security + testing + code review checkpoints before merge
+5. **Token efficiency**: Centralized references, link-based docs, table-driven data
 
 ---
 
@@ -20,17 +20,19 @@ assist-plugin/
 ├── README.md                  # plugin quick reference
 ├── CHANGELOG.md, LICENSE, NOTICE
 ├── agents/<name>.md           # 14 subagents (subagent: true, model, tools, commandExecutionPolicy)
-├── skills/<name>/SKILL.md     # 18 skills, each exposed as /<name>
+├── skills/<name>/SKILL.md     # 19 skills, each exposed as /<name>
 │   └── references/            # progressive-disclosure detail loaded on demand
 ├── rules/
 │   ├── assist-routing.md      # trigger: always_on (route actionable work to /do)
 │   ├── assist-plugin-rule.md  # trigger: model_decision (governance gates)
-│   └── llm-security-checklist.md  # trigger: model_decision (OWASP Top 10 for LLM)
+│   ├── llm-security-checklist.md  # trigger: model_decision (OWASP Top 10 for LLM)
+│   ├── writing-standard.md    # trigger: model_decision (full writing rules)
+│   └── writing-standard-compact.md  # trigger: always_on (compact writing rules)
 └── docs/                      # SPECIFICATION, ARCHITECTURE, TOKEN_OPTIMIZATION,
                                # DOCUMENTATION_STANDARD, TRACING_MARKERS, history/
 ```
 
-The plugin ships no `metadata.json` files, no hooks directory, no `hooks.json`, and no `mcp_config.json`. `scripts/set-model-profile.sh` and `scripts/install.sh` live in the repository root, outside the plugin folder.
+The plugin ships no `metadata.json` files, no hooks directory, no `hooks.json`, and no `mcp_config.json`. `scripts/set-model-profile.sh`, `scripts/install.sh`, and `scripts/sync-writing-standard.py` live in the repository root, outside the plugin folder.
 
 ---
 
@@ -81,28 +83,28 @@ The plugin ships no `metadata.json` files, no hooks directory, no `hooks.json`, 
 ### By Responsibility
 
 #### Development Tier
-- **developer** — Implement, fix, refactor code
-- **reviewer** — Quality, security, performance checks
-- **code-reviewer** — Formal line-by-line review (specialized)
+- **developer**: Implement, fix, refactor code
+- **reviewer**: Quality, security, performance checks
+- **code-reviewer**: Formal line-by-line review (specialized)
 
 #### Architecture Tier
-- **planner** — System design, roadmap, risk assessment
-- **solutions-architect** — Feature specs, API design, data flow
+- **planner**: System design, roadmap, risk assessment
+- **solutions-architect**: Feature specs, API design, data flow
 
 #### Quality Tier
-- **qa** — Test planning, acceptance validation
-- **developer-tester** — Black-box tests from acceptance criteria
-- **requirements-gatherer** — Requirements, BRD/URD, FR+NFR
+- **qa**: Test planning, acceptance validation
+- **developer-tester**: Black-box tests from acceptance criteria
+- **requirements-gatherer**: Requirements, BRD/URD, FR+NFR
 
 #### Infrastructure Tier
-- **devops** — CI/CD, infrastructure, deployment
+- **devops**: CI/CD, infrastructure, deployment
 
 #### Support Tier
-- **researcher** — Web research, documentation, best practices
-- **explore** — Fast code search and location discovery
-- **ask** — Repository and optional web Q&A
-- **general-purpose** — Catch-all for unmatched tasks
-- **worker** — Multi-discipline (code + review + test combined)
+- **researcher**: Web research, documentation, best practices
+- **explore**: Fast code search and location discovery
+- **ask**: Repository and optional web Q&A
+- **general-purpose**: Catch-all for unmatched tasks
+- **worker**: Multi-discipline (code + review + test combined)
 
 ### By Model Tier
 

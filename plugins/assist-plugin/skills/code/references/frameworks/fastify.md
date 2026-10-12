@@ -37,11 +37,11 @@ app.get<{ Params: { id: number }; Reply: User }>("/users/:id", {
 **HTTP/2 support:** Fastify natively supports HTTP/2.
 
 ```typescript
-// Plaintext h2c — behind proxy (Cloud Run, GKE, ALB)
+// Plaintext h2c: behind proxy (Cloud Run, GKE, ALB)
 const fastify = require('fastify')({ http2: true })
 fastify.listen({ port: 8080, host: '0.0.0.0' })
 
-// HTTPS h2 — direct TLS termination
+// HTTPS h2: direct TLS termination
 const fastify = require('fastify')({
   http2: true,
   https: {
@@ -52,7 +52,7 @@ const fastify = require('fastify')({
 })
 ```
 
-- Behind proxy: use `http2: true` without `https` — proxy handles TLS
+- Behind proxy: use `http2: true` without `https`; proxy handles TLS
 - Direct: `https` + `allowHTTP1: true` for backward compat
 - Set `trustProxy: true` when behind a reverse proxy
 
@@ -84,8 +84,8 @@ await fastify.register(cors, {
 
 Rules:
 - `credentials: true` + wildcard origin is rejected by browsers
-- `strictPreflight: true` (default) — enforce proper preflight headers
-- `hook: 'onRequest'` (default) — runs before any other hook
+- `strictPreflight: true` (default): enforce proper preflight headers
+- `hook: 'onRequest'` (default): runs before any other hook
 
 ## Security Headers (@fastify/helmet)
 

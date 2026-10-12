@@ -1,4 +1,4 @@
-# Background Job Queue — TypeScript (BullMQ)
+# Background Job Queue: TypeScript (BullMQ)
 
 Redis-backed job queue with typed payloads, retry policy, and a worker
 process. See [../../languages/typescript.md](../../languages/typescript.md)
@@ -49,7 +49,7 @@ const worker = new Worker<WelcomeEmailJob>(
         logger.error("permanent email failure", { userId: job.data.userId });
         throw new UnrecoverableError(err.message); // skips remaining retries
       }
-      throw err; // transient — BullMQ retries with backoff
+      throw err; // transient: BullMQ retries with backoff
     }
   },
   { connection, concurrency: 10 }

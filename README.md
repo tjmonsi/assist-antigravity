@@ -1,20 +1,21 @@
 # assist-antigravity
 
-`assist-plugin` for [Google Antigravity](https://antigravity.google/): 18 skills (14 user-facing, 4 internal) and 14 subagents that cover the development lifecycle from requirements to shipping. The `/do` orchestrator routes each task to a specialist subagent, writes an execution plan for your approval, and runs review loops before work is marked done.
+`assist-plugin` for [Google Antigravity](https://antigravity.google/): 19 skills (15 user-facing, 4 internal) and 14 subagents that cover the development lifecycle from requirements to shipping. The `/do` orchestrator routes each task to a specialist subagent, writes an execution plan for your approval, and runs review loops before work is marked done.
 
-This repo ports the Claude Code plugin [`assist-plugin` v1.7.0](https://github.com/tjmonsi/assist-marketplace-plugin) by Toni-Jan Keith Monserrat to Antigravity's plugin format. Skill and agent content follows upstream; frontmatter, tool names, model tiers, and orchestration steps are rewritten for Antigravity.
+This repo ports the Claude Code plugin [`assist-plugin` v1.8.0](https://github.com/tjmonsi/assist-marketplace-plugin) by Toni-Jan Keith Monserrat to Antigravity's plugin format. Skill and agent content follows upstream; frontmatter, tool names, model tiers, and orchestration steps are rewritten for Antigravity.
 
 ## Status
 
-Verified live on the Antigravity CLI (`agy` 1.3.3, 2026-10-12):
+Verified live on the Antigravity CLI (`agy` 1.3.3, 2026-10-12). Items below are results for the 1.7.0-antigravity release unless marked 1.8.0:
 
 - `agy plugin install` works from a local clone and from a GitHub subpath URL.
-- All 18 skills load as slash commands without a plugin prefix (`/do`, `/ask`, ...).
+- All 18 skills of that release load as slash commands without a plugin prefix (`/do`, `/ask`, ...).
 - All 14 subagents are invocable, with the ported Antigravity tool names.
 - The always-on routing rule (`assist-routing.md`) loads.
 - Subagents run on the tier in their agent file's `model:` line (observed for `reviewer`, which ran on pro; the other agents use the same mechanism).
+- 1.8.0: the always-on `writing-standard-compact.md` rule loads in the main agent and in a subagent (observed for `reviewer` on agy 1.3.3, which named the rule file).
 
-Not yet verified: a full `/do` run end to end, Antigravity 2.0, and the Antigravity IDE.
+Not yet verified: the 1.8.0 `/deslop` skill and the `/do` plan table and approval loop, a full `/do` run end to end, Antigravity 2.0, and the Antigravity IDE.
 
 Headless `agy -p` cannot approve shell commands: it denies every `run_command` call, so skills that run commands stop at the first one. The denial message itself names the fix: "Add an allow-rule under permissions.allow in settings.json (e.g. command(<target>))" (observed on agy 1.3.3). Run those skills in an interactive session, or add allow rules for the commands you trust to `~/.gemini/antigravity-cli/settings.json` (the file exists at that path on agy 1.3.3, observed):
 
@@ -114,7 +115,7 @@ The script rewrites only the `model:` line in each agent's frontmatter and check
 /debug analyze
 ```
 
-`/do` classifies the request, picks an agent and tier for each step, writes a plan to `.agent/main-plan/`, and asks for approval before running anything. Use the direct skills below when you already know which tool you need.
+`/do` classifies the request, picks an agent and tier for each step, writes a plan to `.agent/main-plan/`, shows it in chat as a step table, and asks you to approve, edit, or cancel before running anything. Use the direct skills below when you already know which tool you need.
 
 ## Skills
 
@@ -136,6 +137,7 @@ Antigravity exposes every skill as a slash command without a plugin prefix (`/do
 | `/spec-from-requirements [create \| delta \| review] [feature \| file]` | Write feature specs and delta specs from requirements |
 | `/task-plan <spec-file-or-prompt> [language]` | Turn a spec into ordered coding steps |
 | `/create-test [spec-file \| feature] [language]` | Generate black-box acceptance-criteria tests |
+| `/deslop [edit \| detect] <file-or-text>` | Remove AI writing tells from prose; `edit` returns the cleaned text, `detect` lists findings |
 
 `/pr-review` uses the `gh` CLI for GitHub and the `bkt` CLI for Bitbucket. See [Recommended CLI tools](#recommended-cli-tools).
 
@@ -181,7 +183,9 @@ The rules in [`plugins/assist-plugin/rules/`](plugins/assist-plugin/rules/) defi
 - **Test coverage** above 70% for new code
 - **Code review sign-off** before merge, plus the merge policy
 
-[`assist-routing.md`](plugins/assist-plugin/rules/assist-routing.md) is always on and sends actionable development prompts to `/do`. [`assist-plugin-rule.md`](plugins/assist-plugin/rules/assist-plugin-rule.md) holds the full gate definitions and loads when the model judges it relevant.
+[`assist-routing.md`](plugins/assist-plugin/rules/assist-routing.md) is always on and sends actionable development prompts to `/do`. [`assist-plugin-rule.md`](plugins/assist-plugin/rules/assist-plugin-rule.md) holds the full gate definitions and the untrusted-content rules, and loads when the model judges it relevant.
+
+[`writing-standard-compact.md`](plugins/assist-plugin/rules/writing-standard-compact.md) is also always on: twelve bullets on how agents write prose (answer first, three-part findings, plain words, no em dashes). It does not apply to code, data, or quoted text, and your project and user instructions take precedence. [`writing-standard.md`](plugins/assist-plugin/rules/writing-standard.md) holds the full rules and loads on demand, for example when `/deslop` or `/review-md` runs.
 
 ## Recommended CLI tools
 
@@ -247,10 +251,13 @@ for t in git node npm uv python3 gh bkt ctx7 firecrawl mmdc docker promptfoo gar
 | solutions-architect | Shell restricted to mermaid-cli by a Claude hook | No shell access; Mermaid source is embedded instead of rendered to PNG |
 | researcher | Shell available for firecrawl | No shell (`commandExecutionPolicy: "off"`); uses `search_web` and `read_url_content`, and tells you the firecrawl command if you want it |
 | ask | Hands off to explore or researcher | No handoff; Antigravity gives it no `invoke_subagent`, so it searches with its own tools and recommends researcher when deep research is needed |
-| Model change at plan approval | Pick a model per agent when approving the plan | Not possible; run `scripts/set-model-profile.sh`, then restart Antigravity (or the `agy` session) and re-run `/do` |
-| Concurrent code writes | Independent steps run as background agents | Overlapping code-writing steps run sequentially in workspace `inherit`; the `branch` workspace is not used until worktree merge-back is verified on a live install |
-| Hooks | `doc-cli-guard`, `sa-mermaid-only`, and a SessionStart `health-check` in `hooks/` | None shipped; upstream v1.6+ hooks (doc-cli-guard, sa-mermaid-only, health-check) not ported: Antigravity hook payloads do not identify the calling agent, there is no SessionStart event, and the no-match decision for doc-cli-guard needs a live test |
-| `/health` skill | Reports hook health | Not ported (no hooks to report on) |
+| Model change at plan approval | The approval question offers Approve, Edit steps, Change models, or Cancel | Approve, Edit steps, or Cancel. The agent file's `model:` line overrides `invoke_subagent`'s `Model` parameter, so a model change means running `scripts/set-model-profile.sh`, restarting Antigravity (or the `agy` session), and re-running `/do` |
+| Concurrent code writes | Each wave of independent steps runs as background agents | Overlapping code-writing steps run sequentially in workspace `inherit`; the `branch` workspace is not used until worktree merge-back is verified on a live install |
+| Hooks | `doc-cli-guard`, `sa-mermaid-only`, a SessionStart `health-check`, and from v1.8.0 `injection-filter`, `prose-gate`, `prose-advisor`, and `writing-context` | None shipped. Antigravity hook payloads do not identify the calling agent, there is no SessionStart, SubagentStart, or UserPromptSubmit event, PostToolUse hooks cannot read or change a tool result, and a PreToolUse hook must return a decision on every matching call (`allow` would auto-approve every file write) |
+| Prompt-injection filter | `injection-filter` hook rewrites injection sentences in web, MCP, and subagent results | No filter. The governance rule's Untrusted Content section and each skill's own text tell agents to treat fetched content and subagent results as data and report injection attempts; nothing filters them automatically |
+| Writing standard | `writing-context` hook injects the compact rules into the session and each subagent; `prose-gate` and `prose-advisor` check prose writes | `rules/writing-standard-compact.md` loads as an `always_on` rule; writes are not checked. Use `/deslop detect` or `/review-md` to check prose |
+| Output style | Opt-in `assist-plugin:terse` output style | Not ported; Antigravity plugins have no output styles, and the always-on writing rule covers its core (answer first, no preamble or recap) |
+| `/health` skill | Reports hook health and self-tests the hooks | Not ported (no hooks to report on) |
 | Command pre-approval | `allowed-tools` pre-approves exact test-runner, audit, git, and doc-CLI commands | No pre-approval; skills list the safe read-only form of each command, and anything that runs repo-controlled code or needs network runs only after you confirm |
 | Security scans from qa | Claude prompts per scanner command | qa has no `ask_question`, so it stops and hands the exact command and target back to `/do`, which asks you before qa runs it |
 | Worktree cleanup | `/branch cleanup` sweeps merged worktrees directly; `/do` Step 7 removes the worktrees its own steps created | `/branch cleanup` shows a dry-run listing and asks for confirmation with `ask_question` before removing anything; `/do` creates no worktrees and has no cleanup step (it keeps the disk-space preflight) |
@@ -272,7 +279,7 @@ agy plugin validate plugins/assist-plugin    # Antigravity's structural check
 
 `agy plugin validate` checks structure only. In tests it accepted wrong tool names, `model: sonnet`, invalid rule triggers, and skills with no description, so `scripts/validate.py` stays the required gate.
 
-The validator uses the Python standard library only. It checks `plugin.json` keys, agent frontmatter (tool names, `model`, `commandExecutionPolicy`, `mainAgent: false`, `run_command` requiring `sandbox`, `skills:` paths), skill and rule frontmatter, the 24,000-byte rule size limit, the tier table in `set-model-profile.sh`, relative markdown links, control bytes (anything but TAB and LF) and TABs outside fenced code in markdown, invisible Unicode (bidi controls and tag characters are errors, zero-width characters are warnings) in markdown and `plugin.json`, and leftover Claude Code terms. It prints `ERROR` and `WARN` lines and exits 1 on any error. Contributor workflow is in [AGENTS.md](AGENTS.md).
+The validator uses the Python standard library only. It checks `plugin.json` keys, agent frontmatter (tool names, `model`, `commandExecutionPolicy`, `mainAgent: false`, `run_command` requiring `sandbox`, `skills:` paths), skill and rule frontmatter, the 24,000-byte rule size limit, the tier table in `set-model-profile.sh`, relative markdown links, control bytes (anything but TAB and LF) and TABs outside fenced code in markdown, invisible Unicode (bidi controls and tag characters are errors, zero-width characters are warnings) in markdown and `plugin.json`, leftover Claude Code terms, em dashes and curly quotes in prose (warnings), and that every `## Report Writing Standard` block matches `rules/writing-standard-compact.md` (fix drift with `python3 scripts/sync-writing-standard.py`). It prints `ERROR` and `WARN` lines and exits 1 on any error. Contributor workflow is in [AGENTS.md](AGENTS.md).
 
 ## Repository layout
 
@@ -287,8 +294,8 @@ assist-antigravity/
 │   └── assist-plugin/         # the Antigravity plugin; install this folder
 │       ├── plugin.json        # name, version, description
 │       ├── agents/            # 14 subagents
-│       ├── skills/            # 18 skills (14 user-facing, 4 internal)
-│       ├── rules/             # routing rule, governance gates, LLM security checklist
+│       ├── skills/            # 19 skills (15 user-facing, 4 internal)
+│       ├── rules/             # routing rule, governance gates, LLM security checklist, writing standard
 │       ├── docs/              # specification, architecture, standards
 │       ├── README.md          # plugin quick reference
 │       ├── CHANGELOG.md       # upstream plugin history
@@ -297,6 +304,7 @@ assist-antigravity/
 └── scripts/
     ├── install.sh             # copy the plugin into Antigravity 2.0 / IDE folders
     ├── set-model-profile.sh   # switch subagent model tiers
+    ├── sync-writing-standard.py  # copy the compact writing rules into every Report Writing Standard block
     └── validate.py            # static format checker
 ```
 

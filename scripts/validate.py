@@ -10,6 +10,7 @@ lines, then a summary. Exits 1 if any ERROR was reported.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import sys
@@ -18,6 +19,7 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_PLUGIN_DIR = SCRIPT_DIR.parent / "plugins" / "assist-plugin"
 PROFILE_SCRIPT = SCRIPT_DIR / "set-model-profile.sh"
+SYNC_SCRIPT = SCRIPT_DIR / "sync-writing-standard.py"
 
 PLUGIN_JSON_KEYS = {"name", "description", "version", "$schema"}
 VALID_TOOLS = {
@@ -61,6 +63,10 @@ CLAUDE_ISMS = [
     ('isolation: "worktree"', re.compile(r"isolation:\s*\"?worktree")),
     ("CLAUDE_PLUGIN_DATA", re.compile(r"CLAUDE_PLUGIN_DATA")),
     ("systemMessage", re.compile(r"systemMessage")),
+    # Upstream v1.8.0 hooks and output style that the port does not ship.
+    ("upstream hook name", re.compile(r"\b(?:prose-gate|prose-advisor|writing-context|injection-filter)\b")),
+    ("prose-rules.js", re.compile(r"prose-(?:rules|diff)\.js")),
+    ("output style", re.compile(r"output-styles?/|\bterse\.md\b")),
 ]
 # These two patterns also occur legitimately inside fenced code (SQL placeholders such as $1,
 # Rust macros), so they are checked outside fenced code blocks only.
@@ -85,6 +91,10 @@ ZERO_WIDTH_RE = re.compile("[\u200b-\u200d\u2060\ufeff]")
 # (path relative to the plugin root, character) pairs that are allowed without a warning.
 ZERO_WIDTH_ALLOWED = {("skills/ask/references/answer-format.md", "\u200b")}  # escapes nested fences
 MAX_LOCATIONS = 5
+# Writing-standard block-tier characters: em dash, horizontal bar, curly quotes. Checked outside
+# fenced code, inline code, and straight double-quoted spans (quoted examples stay as written).
+PROSE_TELL_RE = re.compile("[\u2014\u2015\u2018\u2019\u201c\u201d]")
+DOUBLE_QUOTED_RE = re.compile(r'"[^"\n]{0,300}"')
 
 
 class Report:
@@ -528,6 +538,43 @@ def check_claude_isms(root: Path, report: Report) -> None:
             report.warn(path, f"Claude-isms remaining ({sum(found.values())}): {detail}")
 
 
+def check_writing_standard_sync(root: Path, report: Report) -> None:
+    """ERROR on every Report Writing Standard block that differs from the compact rule."""
+    if not SYNC_SCRIPT.is_file():
+        report.error(SYNC_SCRIPT, "writing-standard sync script not found")
+        return
+    spec = importlib.util.spec_from_file_location("sync_writing_standard", SYNC_SCRIPT)
+    if spec is None or spec.loader is None:
+        report.error(SYNC_SCRIPT, "cannot load the writing-standard sync script")
+        return
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    try:
+        bullets = module.load_compact(root)
+        drifted, _, _ = module.drifted_files(root, bullets)
+    except module.SyncError as exc:
+        report.error(root / module.COMPACT_REL, str(exc))
+        return
+    for path, _ in drifted:
+        report.error(path, f"Report Writing Standard block differs from {module.COMPACT_REL} "
+                           "(run python3 scripts/sync-writing-standard.py)")
+
+
+def check_prose_tells(root: Path, report: Report) -> None:
+    """WARN on em dashes and curly quotes in plugin markdown prose."""
+    for path in sorted(root.rglob("*.md")):
+        if path.name == "CHANGELOG.md":
+            continue
+        hits = []
+        for no, line in iter_prose_lines(path.read_text(encoding="utf-8")):
+            if PROSE_TELL_RE.search(DOUBLE_QUOTED_RE.sub("", line)):
+                hits.append(str(no))
+        if hits:
+            shown = ", ".join(hits[:MAX_LOCATIONS]) + (" ..." if len(hits) > MAX_LOCATIONS else "")
+            report.warn(path, f"em dash or curly quote in prose on {len(hits)} line(s) (lines {shown}); "
+                              "see rules/writing-standard.md")
+
+
 def main(argv: list[str]) -> int:
     if len(argv) > 2 or (len(argv) == 2 and argv[1] in ("-h", "--help")):
         print(__doc__.strip())
@@ -546,6 +593,8 @@ def main(argv: list[str]) -> int:
     check_control_bytes(root, report)
     check_invisible_unicode(root, report)
     check_claude_isms(root, report)
+    check_writing_standard_sync(root, report)
+    check_prose_tells(root, report)
     print(f"\n{report.errors} error(s), {report.warnings} warning(s) in {root}")
     return 1 if report.errors else 0
 

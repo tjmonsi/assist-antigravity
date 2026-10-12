@@ -1,4 +1,4 @@
-# Retry with Exponential Backoff + Jitter — Go
+# Retry with Exponential Backoff + Jitter: Go
 
 Resilient outbound call helper using context-aware sleep. See
 [../../languages/go.md](../../languages/go.md) and
@@ -75,7 +75,7 @@ func fetchUpstream(ctx context.Context, client *http.Client, url string) ([]byte
 		req, _ := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 		resp, err := client.Do(req)
 		if err != nil {
-			return err // network error — retryable
+			return err // network error: retryable
 		}
 		defer resp.Body.Close()
 

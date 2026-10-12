@@ -1,6 +1,6 @@
 # assist-plugin
 
-Token-optimized software development plugin for Google Antigravity. It orchestrates 14 specialized subagents and 18 skills across the full development lifecycle. This is the Antigravity port of [assist-plugin](https://github.com/tjmonsi/assist-marketplace-plugin), originally built for Claude Code.
+Token-optimized software development plugin for Google Antigravity. It orchestrates 14 specialized subagents and 19 skills across the full development lifecycle. This is the Antigravity port of [assist-plugin](https://github.com/tjmonsi/assist-marketplace-plugin), originally built for Claude Code.
 
 ## Install
 
@@ -53,7 +53,7 @@ The orchestrator starts these with `invoke_subagent`; they are not slash command
 - Subagents run on the `model` value in their agent file. Switch every agent at once with `scripts/set-model-profile.sh <gemini|inherit|gemini-pro|gemini-flash> [plugin-dir]` from a clone of the repository; `inherit` makes every subagent follow the model selector.
 - See [skills/do/references/model-routing.md](skills/do/references/model-routing.md) for the tier table and rationale.
 
-## Skills (18)
+## Skills (19)
 
 Antigravity exposes every skill as a slash command. The text typed after the command is the skill's input.
 
@@ -73,6 +73,7 @@ Antigravity exposes every skill as a slash command. The text typed after the com
 | **spec-from-requirements** | `/spec-from-requirements [create \| delta \| review] [feature-name \| file-path]` | Classify-first feature specs with Requirement/Scenario blocks and delta change logs |
 | **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Generate ordered coding steps from feature specs |
 | **create-test** | `/create-test [spec-file \| feature-name] [language]` | Create black-box tests from acceptance criteria only |
+| **deslop** | `/deslop [edit \| detect] <file-or-text>` | Remove AI writing tells from prose; edit returns cleaned text, detect lists findings |
 | **code** | (internal; preloaded by developer) | Language/framework standards, logging, error-handling, traceability conventions |
 | **pentest** | (internal; preloaded by qa) | Security testing: OWASP Top 10, LLM OWASP Top 10, dependency audit |
 | **integrated-test** | (internal; preloaded by qa) | Integration/E2E testing with Playwright, container patterns, Playwright availability check |
@@ -80,11 +81,12 @@ Antigravity exposes every skill as a slash command. The text typed after the com
 
 ## Documentation
 
-- **[SPECIFICATION.md](docs/SPECIFICATION.md)** — Full agent/skill catalog
-- **[TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)** — What's included/excluded and why
-- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)** — Design rationale and structure
-- **[DOCUMENTATION_STANDARD.md](docs/DOCUMENTATION_STANDARD.md)** — Writing standards, AI-slop removal, conciseness checklist
-- **[TRACING_MARKERS.md](docs/TRACING_MARKERS.md)** — Requirement/spec traceability marker convention
+- **[SPECIFICATION.md](docs/SPECIFICATION.md)**: Full agent/skill catalog
+- **[TOKEN_OPTIMIZATION.md](docs/TOKEN_OPTIMIZATION.md)**: What's included/excluded and why
+- **[ARCHITECTURE.md](docs/ARCHITECTURE.md)**: Design rationale and structure
+- **[writing-standard.md](rules/writing-standard.md)**: Writing rules and AI-slop removal tiers (source of truth); [writing-standard-compact.md](rules/writing-standard-compact.md) is its always-on summary
+- **[DOCUMENTATION_STANDARD.md](docs/DOCUMENTATION_STANDARD.md)**: Documentation-specific rules: structure, citations, and conciseness checklist
+- **[TRACING_MARKERS.md](docs/TRACING_MARKERS.md)**: Requirement/spec traceability marker convention
 
 ## Getting Started
 
