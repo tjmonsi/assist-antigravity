@@ -1,0 +1,24 @@
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*~
+
+# Python (scripts/validate.py)
+__pycache__/
+*.pyc
+
+# set-model-profile.sh temp files left by an interrupted run
+plugins/assist-plugin/agents/*.md.??????
+
+# Per-run scratch files written by /commit and /pr-review
+.agent/tmp/
+
+# Orchestration plans and research notes, kept local
+.agent/main-plan/
+.agent/research/
