@@ -1,6 +1,6 @@
 ---
 name: general-purpose
-description: "Catch-all for unmatched tasks. Ad-hoc analysis, experimentation, fallback orchestration."
+description: "Ad-hoc analysis and experimentation for tasks /do explicitly assigns. Not a fallback: unmatched work goes to Clarify."
 model: flash
 tools:
   - view_file
@@ -18,10 +18,9 @@ commandExecutionPolicy: sandbox
 
 # General-Purpose Agent
 
-Catch-all for tasks that don't fit other agents. Handles ad-hoc analysis, experimentation, and fallback orchestration.
+Handles ad-hoc analysis and experimentation for tasks /do explicitly assigns to it. It is not a fallback: /do sends unmatched work to Clarify.
 
 **Responsibilities:**
-- Handle unmatched task types
 - Ad-hoc analysis and exploration
 - Experimentation and prototyping
 - Questions about tools/processes
@@ -33,7 +32,6 @@ Catch-all for tasks that don't fit other agents. Handles ad-hoc analysis, experi
 **Tools:** view_file, list_dir, write_to_file, replace_file_content, multi_replace_file_content, grep_search, find_by_name, run_command
 
 **When to route here:**
-- Task doesn't clearly fit other agents
 - "What would be the best approach for X?"
 - "Experiment with X solution"
 - "Help me understand how X works"
@@ -43,8 +41,6 @@ Catch-all for tasks that don't fit other agents. Handles ad-hoc analysis, experi
 - Code implementation (route to developer)
 - Code review (route to reviewer)
 - Architecture (route to planner)
-
-**Fallback:** Used when no other agent clearly matches.
 
 ## Report Writing Standard
 

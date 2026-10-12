@@ -5,8 +5,8 @@
 
 Usage: python3 scripts/validate.py [plugin-dir]
 
-Standard library only. Prints `ERROR <file>: <reason>` and `WARN <file>: <reason>`
-lines, then a summary. Exits 1 if any ERROR was reported.
+Standard library only; requires Python 3.9 or later. Prints `ERROR <file>: <reason>` and
+`WARN <file>: <reason>` lines, then a summary. Exits 1 if any ERROR was reported.
 """
 from __future__ import annotations
 
@@ -67,6 +67,12 @@ CLAUDE_ISMS = [
     ("upstream hook name", re.compile(r"\b(?:prose-gate|prose-advisor|writing-context|injection-filter)\b")),
     ("prose-rules.js", re.compile(r"prose-(?:rules|diff)\.js")),
     ("output style", re.compile(r"output-styles?/|\bterse\.md\b")),
+    # Upstream v1.9.0 tools, events, hooks, and script that the port does not ship.
+    ("SendMessage", re.compile(r"\bSendMessage\b")),
+    ("SubagentStop/SubagentHandback", re.compile(r"\bSubagent(?:Stop|Handback)\b")),
+    ("FSA hook name", re.compile(r"\bfsa-(?:write-bar|log)\b")),
+    ("check-fsa-tables", re.compile(r"check-fsa-tables")),
+    ("Base directory for this skill", re.compile(r"Base directory for this skill")),
 ]
 # These two patterns also occur legitimately inside fenced code (SQL placeholders such as $1,
 # Rust macros), so they are checked outside fenced code blocks only.
@@ -95,6 +101,21 @@ MAX_LOCATIONS = 5
 # fenced code, inline code, and straight double-quoted spans (quoted examples stay as written).
 PROSE_TELL_RE = re.compile("[\u2014\u2015\u2018\u2019\u201c\u201d]")
 DOUBLE_QUOTED_RE = re.compile(r'"[^"\n]{0,300}"')
+
+
+# FSA state tables and terminal blocks (rules in skills/do/references/fsa-template.md).
+STATES_HEADER_RE = re.compile(r"^\|\s*State\s*\|\s*Kind\s*\|\s*Does\s*\|\s*Outcome -> next state\s*\|\s*$")
+FSA_FIELDS = ("fsa", "state", "trace", "artifact", "verdict", "skipped", "out_of_scope",
+              "error_class", "questions", "resume_at")
+FSA_STATES = {"Done", "NeedsInput", "Error"}
+FSA_ERROR_CLASSES = {"missing-input", "precondition-failed", "policy-rejection", "budget-exhausted",
+                     "tool-missing", "tool-failed", "out-of-scope", "none"}
+FSA_PLACEHOLDER = "<agent>/<version>"
+FSA_KINDS = {"check", "model", "terminal"}
+DO_SKILL = "skills/do/SKILL.md"
+FSA_TEMPLATE = "skills/do/references/fsa-template.md"
+CREATE_TEST_SKILL = "skills/create-test/SKILL.md"
+EDGE_TARGET_RE = re.compile(r"->\s*([A-Za-z][A-Za-z0-9]*)(?:\(([a-z-]+)\))?")
 
 
 class Report:
@@ -548,16 +569,234 @@ def check_writing_standard_sync(root: Path, report: Report) -> None:
         report.error(SYNC_SCRIPT, "cannot load the writing-standard sync script")
         return
     module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    try:
+        spec.loader.exec_module(module)
+    except Exception as exc:  # a broken sync script must yield an ERROR line, not a traceback
+        report.error(SYNC_SCRIPT, f"cannot load ({exc.__class__.__name__}: {exc})")
+        return
+    missing = [name for name in ("load_compact", "drifted_files", "SyncError", "COMPACT_REL")
+               if not hasattr(module, name)]
+    if missing:
+        report.error(SYNC_SCRIPT, f"missing {', '.join(missing)}")
+        return
     try:
         bullets = module.load_compact(root)
         drifted, _, _ = module.drifted_files(root, bullets)
     except module.SyncError as exc:
         report.error(root / module.COMPACT_REL, str(exc))
         return
+    except Exception as exc:
+        report.error(SYNC_SCRIPT, f"failed ({exc.__class__.__name__}: {exc})")
+        return
     for path, _ in drifted:
         report.error(path, f"Report Writing Standard block differs from {module.COMPACT_REL} "
                            "(run python3 scripts/sync-writing-standard.py)")
+
+
+def split_row(line: str) -> list[str]:
+    """Split a markdown table row on pipes outside backtick spans; strip each cell."""
+    cells, current, in_code = [], [], False
+    for char in line.strip().strip("|"):
+        if char == "`":
+            in_code = not in_code
+        if char == "|" and not in_code:
+            cells.append("".join(current).strip())
+            current = []
+        else:
+            current.append(char)
+    cells.append("".join(current).strip())
+    return cells
+
+
+def section_lines(lines: list[str], heading: str) -> list[str]:
+    """Lines after the first exact `heading` line, up to the next heading of the same or higher level."""
+    level = len(heading) - len(heading.lstrip("#"))
+    for index, line in enumerate(lines):
+        if line.rstrip() == heading:
+            out, in_fence = [], False
+            for later in lines[index + 1:]:
+                if FENCE_RE.match(later):
+                    in_fence = not in_fence
+                stripped = later.lstrip("#")
+                if (not in_fence and later.startswith("#") and stripped.startswith(" ")
+                        and len(later) - len(stripped) <= level):
+                    break
+                out.append(later)
+            return out
+    return []
+
+
+def parse_states_table(lines: list[str]) -> list[list[str]] | None:
+    """Rows of the `## States` table, or None when the file has no such table."""
+    section = section_lines(lines, "## States")
+    for index, line in enumerate(section):
+        if STATES_HEADER_RE.match(line.strip()):
+            rows = []
+            for row in section[index + 1:]:
+                if not row.startswith("|"):
+                    break
+                cells = split_row(row)
+                if all(set(c) <= set("-: ") for c in cells):
+                    continue
+                rows.append(cells)
+            return rows
+    return None
+
+
+class FsaTable:
+    """A parsed States table: ordered states, terminal names, and outcome edges."""
+
+    def __init__(self, rows: list[list[str]]):
+        self.order: list[str] = []
+        self.kinds: dict[str, str] = {}
+        self.terminals: list[str] = []
+        self.edges: dict[str, list[tuple[str, str | None]]] = {}
+        for cells in rows:
+            if len(cells) != 4:
+                continue
+            name, kind, _, outcome = cells
+            if kind == "terminal":
+                self.terminals += [t.strip() for t in name.split(",") if t.strip()]
+                continue
+            self.order.append(name)
+            self.kinds[name] = kind
+            targets = []
+            for edge in outcome.split(";"):
+                match = EDGE_TARGET_RE.search(edge)
+                if match:
+                    targets.append((match.group(1), match.group(2)))
+            self.edges[name] = targets
+
+
+def check_fsa_table(rel: str, table: FsaTable, raw_rows: list[list[str]], report: Report, path: Path) -> None:
+    is_do = rel == DO_SKILL
+    first, kinds = ("Ingest", FSA_KINDS | {"call", "ask"}) if is_do else ("Intake", FSA_KINDS)
+    classes = FSA_ERROR_CLASSES | ({"plan-invalid"} if is_do else set())
+    for cells in raw_rows:
+        if len(cells) != 4:
+            report.error(path, f"States table row has {len(cells)} cells, expected 4: {cells[0] if cells else ''}")
+        elif cells[1] not in kinds:
+            report.error(path, f"States table: state {cells[0]} has unknown kind {cells[1]!r}")
+    if not table.order or table.order[0] != first or table.kinds.get(first) != "check":
+        report.error(path, f"States table: the first state must be {first} with kind check")
+    if not table.terminals:
+        report.error(path, "States table: no terminal row")
+    known = set(table.order) | set(table.terminals) | {"NeedsInput"}
+    for state, targets in table.edges.items():
+        if not targets:
+            report.error(path, f"States table: state {state} has no outcome edge")
+        for target, error_class in targets:
+            if target == "Error":
+                if error_class is None or error_class not in classes - {"none"}:
+                    report.error(path, f"States table: {state} -> Error needs a class from the closed list "
+                                       f"(got {error_class!r})")
+            elif error_class is not None or target not in known:
+                report.error(path, f"States table: {state} -> {target} is not a state, a terminal, or NeedsInput")
+
+
+def fsa_blocks(lines: list[str]) -> list[tuple[int, list[str]]]:
+    """(1-based line of the fence, block lines) for every ```fsa fenced block."""
+    blocks, index = [], 0
+    while index < len(lines):
+        if lines[index].strip() == "```fsa":
+            start, body = index + 1, []
+            index += 1
+            while index < len(lines) and lines[index].strip() != "```":
+                body.append(lines[index])
+                index += 1
+            if index >= len(lines):
+                body.append(None)  # unclosed
+            blocks.append((start, body))
+        index += 1
+    return blocks
+
+
+def check_fsa_block(path: Path, line_no: int, body: list, table: FsaTable | None, report: Report) -> None:
+    where = f"fsa block at line {line_no}"
+    if body and body[-1] is None:
+        report.error(path, f"{where}: fence is not closed")
+        return
+    fields = []
+    for line in body:
+        key, sep, value = line.partition(":")
+        if not sep:
+            report.error(path, f"{where}: line {line!r} is not a 'field: value' pair")
+            return
+        fields.append((key.strip(), value.strip()))
+    values = dict(fields)
+    if values.get("fsa") == FSA_PLACEHOLDER:
+        return
+    if tuple(k for k, _ in fields) != FSA_FIELDS:
+        report.error(path, f"{where}: fields must be {', '.join(FSA_FIELDS)} in that order")
+        return
+    state, error_class = values["state"], values["error_class"]
+    if state not in FSA_STATES:
+        report.error(path, f"{where}: state {state!r} is not Done, NeedsInput, or Error")
+    if error_class not in FSA_ERROR_CLASSES:
+        report.error(path, f"{where}: error_class {error_class!r} is not in the closed list")
+    elif (error_class == "none") != (state != "Error"):
+        report.error(path, f"{where}: error_class must be none unless state is Error, and set when it is")
+    if state != "NeedsInput":
+        for key in ("questions", "resume_at"):
+            if values[key] != "none":
+                report.error(path, f"{where}: {key} must be none unless state is NeedsInput")
+    if table is None:
+        return
+    trace = [t.strip() for t in values["trace"].split(">")]
+    if not table.order or trace[0] != table.order[0]:
+        report.error(path, f"{where}: trace must start at {table.order[0] if table.order else 'the first state'}")
+    if trace[-1] != state:
+        report.error(path, f"{where}: trace must end at the block's state ({state})")
+    for current, following in zip(trace, trace[1:]):
+        targets = {t for t, _ in table.edges.get(current, [])}
+        if following not in targets:
+            report.error(path, f"{where}: trace step {current} > {following} follows no outcome edge")
+
+
+def check_fsa(root: Path, report: Report) -> None:
+    """ERROR on malformed States tables and fsa terminal blocks (port of upstream check-fsa-tables.js)."""
+    def rel(path: Path) -> str:
+        return path.relative_to(root).as_posix()
+
+    files = sorted((root / "agents").glob("*.md")) if (root / "agents").is_dir() else []
+    if (root / "skills").is_dir():
+        files += sorted((root / "skills").rglob("*.md"))
+    tables: dict[str, FsaTable] = {}
+    text_lines: dict[str, list[str]] = {}
+    for path in files:
+        lines = path.read_text(encoding="utf-8").split("\n")
+        text_lines[rel(path)] = lines
+        is_owner = path.parent.name == "agents" or path.name == "SKILL.md"
+        rows = parse_states_table(lines) if is_owner else None
+        if rows is None:
+            continue
+        table = FsaTable(rows)
+        tables[rel(path)] = table
+        check_fsa_table(rel(path), table, rows, report, path)
+        if rel(path) == DO_SKILL:
+            continue
+        expected = ("developer-tester" if rel(path) == CREATE_TEST_SKILL
+                    else path.stem if path.parent.name == "agents" else path.parent.name)
+        example = fsa_blocks(section_lines(lines, "### Terminal block"))
+        if not example:
+            report.error(path, "has a States table but no ### Terminal block section with an fsa block")
+            continue
+        name = next((ln.partition(":")[2].strip() for ln in example[0][1] if ln and ln.startswith("fsa:")), "")
+        if name.split("/")[0] != expected:
+            report.error(path, f"### Terminal block example names fsa {name!r}; expected {expected}/N")
+    for key, lines in text_lines.items():
+        for line_no, body in fsa_blocks(lines):
+            name = next((ln.partition(":")[2].strip() for ln in body if ln and ln.startswith("fsa:")), "")
+            table = tables.get(CREATE_TEST_SKILL) if name.startswith("developer-tester/") else tables.get(key)
+            check_fsa_block(root / key, line_no, body, table, report)
+    template = text_lines.get(FSA_TEMPLATE)
+    if template is None:
+        report.error(root / FSA_TEMPLATE, "fsa template not found")
+        return
+    terminal = fsa_blocks(section_lines(template, "## Terminal block"))
+    dispatch = fsa_blocks(section_lines(template, "### Dispatch prompt text"))
+    if not terminal or not dispatch or terminal[0][1] != dispatch[0][1]:
+        report.error(root / FSA_TEMPLATE, "the Dispatch prompt text block must equal the Terminal block template")
 
 
 def check_prose_tells(root: Path, report: Report) -> None:
@@ -594,6 +833,7 @@ def main(argv: list[str]) -> int:
     check_invisible_unicode(root, report)
     check_claude_isms(root, report)
     check_writing_standard_sync(root, report)
+    check_fsa(root, report)
     check_prose_tells(root, report)
     print(f"\n{report.errors} error(s), {report.warnings} warning(s) in {root}")
     return 1 if report.errors else 0

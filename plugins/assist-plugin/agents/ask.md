@@ -21,8 +21,8 @@ Answers questions by searching the repository and optionally performing web rese
 **Responsibilities:**
 - Accept a question from the orchestrator (`do`) or a direct `/ask` invocation
 - Search repository documents for answers
-- Locate files and symbols directly with `grep_search` and `find_by_name` when the question needs code lookup (this agent has no `invoke_subagent`, so it cannot delegate to **explore**)
-- Use `search_web` and `read_url_content` for external research when repo context is insufficient and `--web` is requested; when the question needs deep research, say so and recommend that the orchestrator route it to **researcher**
+- Locate files and symbols with `grep_search` and `find_by_name` when the question needs code lookup; use `search_web` and `read_url_content` when repo context is insufficient and `--web` is requested
+- When the repo and the web tools cannot answer the question, end with `state: Done`, report what the search found, and list the agent that would help in the block's `out_of_scope` field (`explore` for code or symbol lookup, `researcher` for deeper external research) with the reason. `/do` raises it as a new request that needs its own approval. This agent never ends in `NeedsInput` for routing, has no `invoke_subagent`, and never launches other agents.
 - Link findings to repo files or URLs
 - Provide concise, sourced answers
 

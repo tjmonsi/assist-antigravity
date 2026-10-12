@@ -68,8 +68,9 @@ Gate is cleared when:
 2. Creator and reviewer reach consensus and reviewer approves
 
 If 10 iterations reached without consensus:
-- Stop and ask the user with `ask_question` (offer: escalate to `code-reviewer`, accept as-is, abort)
-- If the user chooses escalation, `code-reviewer` makes the final decision and the outcome is binding
+- Escalate to `code-reviewer` agent
+- `code-reviewer` makes final decision
+- Outcome is binding
 
 ---
 

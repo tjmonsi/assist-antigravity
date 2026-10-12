@@ -88,7 +88,7 @@ Reviewers approach the submission asking: "Where could this break? What's wrong 
 **Phase 3: Iteration Loop**
 1. If revisions requested: Creator addresses all feedback
 2. Repeat phases 1-2 (adversarial self-reflection + formal audit)
-3. Exit when: 2 consecutive LGTMs OR 10 iterations (the orchestrator then asks the user how to proceed)
+3. Exit when: 2 consecutive LGTMs OR 10 iterations (escalate)
 
 ## Common Issues: Adversarial vs. Formal Audit
 

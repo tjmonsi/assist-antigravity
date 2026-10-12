@@ -87,7 +87,7 @@ Code MUST pass ALL checks before approval:
 3. **Iteration Loop:**
    - If issues found: Developer fixes, then Reviewer re-checks
    - Count iterations (max 10)
-   - Exit when: 2 consecutive LGTMs from reviewer OR 10 iterations (ask the user: escalate to code-reviewer, accept as-is, or abort)
+   - Exit when: 2 consecutive LGTMs from reviewer OR 10 iterations (one binding code-reviewer pass; `returned` fails the step)
 
 **Approval:** `✓ OWASP Clear` only after iteration loop complete
 
@@ -156,7 +156,7 @@ Nothing in this plugin filters content automatically. These text rules are the o
 
 **Who reviews:** `reviewer` or `code-reviewer` agent
 
-**Authority:** Blocks next step if review incomplete; creator must fix feedback; after 10 iterations the orchestrator asks the user how to proceed
+**Authority:** Blocks next step if review incomplete; creator must fix feedback; after 10 iterations one binding code-reviewer pass decides
 
 ### Review and Iteration Process
 
@@ -171,7 +171,7 @@ Nothing in this plugin filters content automatically. These text rules are the o
    - If changes requested: Creator fixes, then Reviewer re-checks
    - Track iterations (1, 2, 3, ... up to 10)
    - Exit condition #1: **2 consecutive LGTMs** from reviewer, then approved (document ready for next step)
-   - Exit condition #2: **10 iterations reached**, then stop and ask the user with `ask_question` (escalate to `code-reviewer`, accept as-is, or abort)
+   - Exit condition #2: **10 iterations reached**, then one binding `code-reviewer` pass; `returned` fails the step
 4. **Approval:** Document is approved when reviewer signs: `✓ LGTM #2` (second consecutive approval)
 
 ### Iteration Tracking in Plan Files
@@ -195,9 +195,9 @@ Mark each iteration in the plan:
 ### Escalation
 
 If creator and reviewer cannot reach consensus after 10 iterations:
-1. Stop and ask the user with `ask_question` (escalate to `code-reviewer`, accept as-is, or abort)
-2. If the user chooses escalation, `code-reviewer` makes the final judgment call: approve document or reject
-3. Decision is final; proceed or abort based on the user's choice or the code-reviewer verdict
+1. Escalate to `code-reviewer` agent
+2. `code-reviewer` makes final judgment call: approve document or reject
+3. Decision is final; proceed or abort based on code-reviewer verdict
 
 ---
 
@@ -256,13 +256,13 @@ All review gates include a dedicated adversarial self-reflection phase for the r
 3. **Iteration Loop**
    - Creator addresses feedback
    - Reviewer repeats: adversarial self-reflection + formal audit
-   - Exit: 2 consecutive LGTMs or 10 iterations (ask the user)
+   - Exit: 2 consecutive LGTMs or 10 iterations (one binding code-reviewer pass; `returned` fails the step)
 
 **Note:** Adversarial self-reflection is not a separate gate. It is a pre-audit step to improve the quality of the formal review.
 
 ---
 
-## Testing Coverage Gate (>70%)
+## Testing Coverage Gate (>=70%)
 
 **When triggered:** Code changes in production code  
 **Who reviews:** `qa` agent  
@@ -270,10 +270,8 @@ All review gates include a dedicated adversarial self-reflection phase for the r
 
 ### Coverage Requirements
 
-- **Unit tests:** Core functions tested (>80%)
-- **Integration tests:** Components work together (>60%)
+- **Overall bar:** >=70% coverage for new/changed code, measured across unit and integration tests together
 - **Edge cases:** Error paths tested
-- **Overall target:** >70% for new/changed code
 
 ### Coverage Validation
 
@@ -281,11 +279,11 @@ All review gates include a dedicated adversarial self-reflection phase for the r
 # Run coverage before merge
 npm run test:coverage  # or equivalent
 
-# Must show: Overall coverage >70%
+# Must show: Overall coverage >=70%
 # Must show: No critical paths uncovered
 ```
 
-**Approval:** Must sign: `✓ Coverage >70%`
+**Approval:** Must sign: `✓ Coverage >=70%`
 
 ---
 
@@ -312,7 +310,7 @@ npm run test:coverage  # or equivalent
 3. **Iteration Loop:**
    - If changes requested: Developer fixes, then Code reviewer re-audits
    - Count iterations (max 10)
-   - Exit when: 2 consecutive LGTMs from code-reviewer OR 10 iterations (ask the user: escalate, accept as-is, or abort)
+   - Exit when: 2 consecutive LGTMs from code-reviewer OR 10 iterations (one binding code-reviewer pass; `returned` fails the step)
 
 **Approval:** `✓ Approved for merge` only after iteration loop complete
 
@@ -340,8 +338,8 @@ Escalate to code-reviewer if:
 | Security (OWASP) | High (multiple issues) | ~15 min |
 | Security (OWASP for LLM) | Low (no issues) | ~5 min |
 | Security (OWASP for LLM) | High (multiple issues) | ~15 min |
-| Testing (>70%) | Low (high coverage) | ~3 min |
-| Testing (>70%) | High (low coverage) | ~10 min |
+| Testing (>=70%) | Low (high coverage) | ~3 min |
+| Testing (>=70%) | High (low coverage) | ~10 min |
 | Code Review | Low (small change) | ~10 min |
 | Code Review | High (complex change) | ~30 min |
 
@@ -353,7 +351,7 @@ Escalate to code-reviewer if:
 
 - [ ] Security review: ✓ OWASP Clear
 - [ ] LLM security review: ✓ LLM Security Clear (required whenever the change touches `agents/*.md`, `skills/**/SKILL.md`, `skills/**/references/*.md`, `rules/*.md`, `AGENTS.md`/`GEMINI.md`, `plugin.json`, `hooks.json`, `mcp_config.json`, or `.agents/**` (workspace agents, skills, rules, plugins, and MCP config))
-- [ ] Testing: ✓ >70% coverage
+- [ ] Testing: ✓ >=70% coverage
 - [ ] Code review: ✓ Approved (if applicable)
 - [ ] Code review iterations tracked in plan file (max 10, or 2 consecutive LGTMs = approved)
 - [ ] Commit format: ✓ Conventional Commits

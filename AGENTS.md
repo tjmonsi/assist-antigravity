@@ -5,7 +5,7 @@ Guidance for agents and contributors working in this repo.
 ## Repo identity
 
 - **Repo:** `tjmonsi/assist-antigravity`
-- **Plugin:** `plugins/assist-plugin` (Antigravity plugin name `assist-plugin`, port of upstream v1.8.0)
+- **Plugin:** `plugins/assist-plugin` (Antigravity plugin name `assist-plugin`, port of upstream v1.9.0)
 - **Upstream:** [`tjmonsi/assist-marketplace-plugin`](https://github.com/tjmonsi/assist-marketplace-plugin), the Claude Code version; local checkout expected at `../assist-marketplace-plugin`
 - **Install:** `agy plugin install https://github.com/tjmonsi/assist-antigravity/plugins/assist-plugin` (stages to `~/.gemini/config/plugins/assist-plugin/` on `agy` 1.3.3, the same folder `scripts/install.sh --global` writes; CLI users use `agy plugin install`, Antigravity 2.0 and IDE users use `install.sh`)
 - **License:** AGPL-3.0-or-later ([LICENSE](LICENSE), [NOTICE](NOTICE)). The 1.5.0-antigravity port was licensed under MIT and was not published; from 1.7.0-antigravity the port is licensed under AGPL-3.0-or-later. New scripts start with `# SPDX-License-Identifier: AGPL-3.0-or-later` and `# Copyright (C) 2026 Toni-Jan Keith Monserrat` after the shebang; markdown files carry no SPDX header
@@ -19,7 +19,7 @@ Do not rename the plugin folder or the `name` in `plugin.json`. The install URL,
 ```text
 plugins/assist-plugin/
 ├── plugin.json          # {"name", "version", "description"}
-├── agents/<name>.md     # 14 subagents
+├── agents/<name>.md     # 15 subagents
 ├── skills/<name>/       # 19 skills: SKILL.md + optional references/
 ├── rules/*.md           # 5 rules; every rule needs `trigger` frontmatter, under 24,000 bytes
 └── docs/                # SPECIFICATION, ARCHITECTURE, standards
@@ -102,6 +102,8 @@ python3 scripts/validate.py
 
 The validator includes the writing-standard drift check. If it reports a drifted Report Writing Standard block, run `python3 scripts/sync-writing-standard.py` (or `--check` to list drift without writing).
 
+The validator also checks the FSA layer (Python 3.9 or later): every `## States` table in `agents/` and `skills/**/SKILL.md` (first state, kinds, and that each outcome edge targets a state, a terminal, `NeedsInput`, or `Error(<class>)` from the closed list), every `fsa` terminal block (ten fields in order, `state`, `error_class`, `questions`, `resume_at`, and a `trace` that follows the owning table), each table owner's `### Terminal block` name, and that the "Dispatch prompt text" block in `skills/do/references/fsa-template.md` equals its Terminal block template. After editing a States table or a terminal block, rerun it.
+
 If the `agy` CLI is installed, also run Antigravity's structural check:
 
 ```bash
@@ -153,14 +155,18 @@ There is no automated sync. To port an upstream change:
    | `LSP` | drop (no equivalent) |
    | `skills: [code]` | `skills: [skills/code]` |
    | `type`, `effort` in agent frontmatter | drop (note effort in the body) |
-   | `CLAUDE.md`, `.claude/settings*.json` | `AGENTS.md`, `plugin.json`, `hooks.json`, `mcp_config.json`, `.agents/**` |
+   | `CLAUDE.md`, `.claude/settings*.json` | `AGENTS.md`, `GEMINI.md`, `plugin.json`, `hooks.json`, `mcp_config.json`, `.agents/**` |
    | `skills/*/metadata.json` | delete |
-   | hooks (`hooks/*.js`, `hooks/hooks.json`) | no port: Antigravity hook payloads do not identify the calling agent, there is no plugin-root variable, PostToolUse cannot read or change tool results, there is no SessionStart, SubagentStart, or UserPromptSubmit event, and the effect of a no-match PreToolUse result is undocumented. Restrict the agent's tools and put the command-shape and untrusted-content rules in skill or rule text instead, without claiming a hook enforces or filters anything. Upstream's `writing-context` hook becomes the `always_on` rule `rules/writing-standard-compact.md` |
+   | hooks (`hooks/*.js`, `hooks/hooks.json`, including v1.9.0 `fsa-write-bar` and `fsa-log`) | no port: Antigravity hook payloads do not identify the calling agent, there is no documented plugin-root variable (the agy 1.3.3 binary contains `${PLUGIN_ROOT}`, undocumented; agy 1.3.2 adds a per-plugin data folder, `PLUGIN_DATA`), PostToolUse cannot read or change tool results, there is no SessionStart, SubagentStart, SubagentStop, or UserPromptSubmit event, and the effect of a no-match PreToolUse result is undocumented. Restrict the agent's tools and put the command-shape and untrusted-content rules in skill or rule text instead, without claiming a hook enforces or filters anything. Upstream's `writing-context` hook becomes the `always_on` rule `rules/writing-standard-compact.md` |
    | `output-styles/` | drop: Antigravity plugins have no output styles |
    | `scripts/sync-writing-standard.js` | `scripts/sync-writing-standard.py` (repository root, stdlib Python), checked by `validate.py` |
    | `hooks/lib/prose-rules.js` links | point at "Mechanical tiers" in `rules/writing-standard.md` |
    | `allowed-tools` pre-approval, "pre-approved", "prompts" | no pre-approval; write "safe read-only form" for read-only commands and "run only after the user confirms" for anything that runs repo-controlled code or needs network |
    | `EnterWorktree` / `ExitWorktree`, `isolation: "worktree"` | drop; `/do` uses workspace `inherit` and creates no worktrees |
+   | `SendMessage` to an agent ID | `send_message` with `Recipient` set to the subagent's conversation ID |
+   | `run_in_background: true` on each Agent call | one `invoke_subagent` call with at most 3 entries; every subagent runs in the background |
+   | "Base directory for this skill" path | the absolute path in agy's "Available skills" list, copied as given |
+   | `scripts/check-fsa-tables.js` | the `validate.py` FSA check (`## States` tables and `fsa` terminal blocks) |
 
 3. Run `python3 scripts/validate.py`. Treat `WARN ... Claude-isms remaining` as a to-do list.
 4. Add a CHANGELOG entry naming the upstream version you synced to.

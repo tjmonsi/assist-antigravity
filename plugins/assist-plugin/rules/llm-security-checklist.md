@@ -49,12 +49,20 @@ injection comes from content the agent fetches on its own.
 - `skills/pentest/SKILL.md` and its references: the qa agent reads scanner reports and target responses
   (ZAP, Nuclei, Semgrep, garak, PyRIT), which a hostile target or repo can shape. Rule of Engagement #8 treats
   them as data; instructions found in them are an LLM01 finding.
-- `skills/do/SKILL.md` Step 1: classifies the raw user prompt with no delimiting or sanitization
+- `skills/do/SKILL.md` Ingest: classifies the raw user prompt with no delimiting or sanitization
   before routing.
 - `skills/do/SKILL.md` subagent results: output from one subagent is passed to later steps and reviewers,
   so a subagent that read hostile content can relay it.
 - `skills/map-project/SKILL.md`: scans repo contents (READMEs, filenames, dependency manifests),
   all of which can carry injected text in a cloned third-party repo.
+- `skills/deslop/SKILL.md`: reads any file the user names, or pasted text, and in `edit` mode writes
+  changes with `replace_file_content`. Its Hard rules treat the target text as data; `edit` changes
+  only files the user named.
+- `agents/intake-reviewer.md`: reads a user-provided spec before plan approval, with read tools only
+  and `commandExecutionPolicy: "off"`; the prompt wraps the path as untrusted data, and findings cite
+  lines without quoting the file.
+- `skills/do/SKILL.md` NeedsInput relay: a subagent that read hostile content can phrase a question
+  that asks for more access. An answer never extends the approved step.
 
 **Verification:**
 
@@ -155,8 +163,10 @@ session's context, converting a one-shot injection into a persistent backdoor.
   behavior.
 - `skills/map-project/SKILL.md` generates `PROJECT_MAP.md` from scanned repo content: a poisoned
   third-party repo can plant instructions that land in a persisted context file.
-- `skills/do/SKILL.md` Step 3 writes plan files to `.agent/main-plan/`, which are re-read on later
+- `skills/do/SKILL.md` Branch writes plan files to `.agent/main-plan/`, which are re-read on later
   steps. An agent with edit tools can change the plan mid-execution.
+- `skills/do/SKILL.md` appends to `DECISIONS.md`, which later sessions may read; entries hold only
+  the user's decisions in `/do`'s words, never subagent text.
 - `skills/technical-writing/SKILL.md` and `skills/bump/SKILL.md` run on the main agent with its
   full tool set and can modify governance and context files.
 
@@ -213,17 +223,18 @@ successful injection has a large blast radius.
 **assist-plugin attack surface:**
 
 - Every file in `agents/` declares a `tools` list and a `commandExecutionPolicy`. `reviewer`,
-  `code-reviewer`, `explore`, `ask`, `planner`, `requirements-gatherer`, `developer-tester`, and
-  `solutions-architect` have no `run_command` and `commandExecutionPolicy: off`. A wrong or widened
+  `code-reviewer`, `intake-reviewer`, `explore`, `ask`, `planner`, `requirements-gatherer`,
+  `developer-tester`, and `solutions-architect` have no `run_command` and
+  `commandExecutionPolicy: off`. A wrong or widened
   `tools` list silently restores excess agency.
 - Five agents hold `run_command` with `commandExecutionPolicy: sandbox`: `developer`, `devops`,
   `general-purpose`, `qa`, `worker`. `researcher` holds no shell because it reads untrusted web
   content (LLM01), and `validate.py` rejects `run_command` with any other policy.
-- All 14 agents set `mainAgent: false` (`validate.py` enforces it): none holds `invoke_subagent` or
+- All 15 agents set `mainAgent: false` (`validate.py` enforces it): none holds `invoke_subagent` or
   `ask_question`, so none can run as the chat's primary agent. `/do` is the entry point.
 - Subagents inherit the parent's sandbox and permission settings, so a permissive user setting
   widens every delegated agent at once.
-- `skills/do/SKILL.md` Step 5 starts independent steps as concurrent subagents through
+- `skills/do/SKILL.md` Dispatch starts independent steps as concurrent subagents through
   `invoke_subagent`, so delegated work executes with no intervening human checkpoint. Subagents can
   nest up to 10 levels if an agent is granted `invoke_subagent` (antigravity.google/docs/subagents/).
 - `skills/pr-review/SKILL.md` Constraints assert "Cannot review own PR": asserted in prose, with no
@@ -233,9 +244,9 @@ successful injection has a large blast radius.
 
 - [ ] Every file in `agents/` declares an explicit `tools` list and `commandExecutionPolicy`
       matching the agent-registry table.
-- [ ] `reviewer`, `code-reviewer`, and `explore` hold only read tools (`view_file`, `list_dir`,
-      `grep_search`, `find_by_name`) and `commandExecutionPolicy: off`, so review authority cannot
-      modify the artifact under review.
+- [ ] `reviewer`, `code-reviewer`, `intake-reviewer`, and `explore` hold only read tools
+      (`view_file`, `list_dir`, `grep_search`, `find_by_name`) and `commandExecutionPolicy: off`, so
+      review authority cannot modify the artifact under review.
 - [ ] `agent-registry.md` and `review-protocol.md` tool columns are verified against actual
       frontmatter; any mismatch blocks merge.
 - [ ] Any agent granted `run_command` uses `commandExecutionPolicy: sandbox`; no agent is granted
@@ -282,7 +293,7 @@ the model emitting a literal string, so a hallucinated sign-off is indistinguish
 **assist-plugin attack surface:**
 
 - `rules/assist-plugin-rule.md` gates approve on the agent writing `✓ OWASP Clear`,
-  `✓ Coverage >70%`, and `✓ Approved for merge`. Nothing verifies the underlying claim.
+  `✓ Coverage >=70%`, and `✓ Approved for merge`. Nothing verifies the underlying claim.
 - The coverage gate cites `npm run test:coverage` but the approval is the model's assertion about
   the output, not a parsed exit code or a CI check.
 - `review-protocol.md` "Approval Tracking" has the agent write its own review outcome into the plan
@@ -311,19 +322,19 @@ terminates.
 
 **assist-plugin attack surface:**
 
-- `skills/do/references/review-protocol.md` caps each gate at 10 iterations and then stops to
-  `ask_question` the user. The cap is an instruction the orchestrator follows; each iteration still
+- `skills/do/references/review-protocol.md` caps each gate at 10 iterations and then runs one
+  binding `code-reviewer` pass. The cap is an instruction the orchestrator follows; each iteration still
   runs the reviewer on the review tier (`pro`).
 - `xhigh` effort guidance applies to `do`, `reviewer`, `code-reviewer`, `planner`, `researcher`,
   `solutions-architect`. Six of the most-invoked paths run at the highest reasoning budget.
-- `skills/do/SKILL.md` Step 5 caps concurrent subagents at 3 by instruction only.
+- `skills/do/SKILL.md` Dispatch caps concurrent subagents at 3 by instruction only.
 - `agents/researcher.md` `read_url_content` can pull arbitrarily large pages into a review-tier
   context.
 
 **Verification:**
 
-- [ ] Every revision loop declares a maximum iteration count and a stop-and-ask-the-user path when
-      exhausted (10 per gate; 3 for the report quality gate).
+- [ ] Every revision loop declares a maximum iteration count and its exhausted target (10 per gate,
+      then one binding code-reviewer pass; 3 rounds for the report quality gate).
 - [ ] Model tier and effort per agent are justified against the routing table in
       `skills/do/references/model-routing.md`; no silent move to `pro` or xhigh.
 - [ ] Concurrent subagent count is bounded (3) and overlapping code writes run sequentially.
@@ -357,12 +368,13 @@ for the Antigravity port. Re-verify each against the current tree before trackin
 | 3 | Medium | LLM02 | Mitigated: `commit` stages named paths and uses `git commit -F`. Still open: user-level auto-approval of `git add`/`git push` lets an agent stage and push without a prompt |
 | 4 | Medium | LLM09 | Governance gates pass on a model-emitted string; agents can write their own approval into plan files |
 | 5 | Medium | LLM09 | Fast-track rule can be read to exempt `agents/`/`skills/` markdown from security review |
-| 6 | Low | LLM10 | Loops are capped at 10 per gate with an `ask_question` stop; the cap is instruction-only |
+| 6 | Low | LLM10 | Loops are capped at 10 per gate, then one binding code-reviewer pass; the cap is instruction-only |
 | 7 | Medium | LLM04 | No confirmation gate on writes to auto-loaded `AGENTS.md` / `GEMINI.md` / `rules/` files |
 | 8 | Low | LLM03 | Install instructions track a branch tip rather than a tagged release; `gh`/`bkt`/`git` invoked without presence checks |
 | 9 | Low | LLM05 | Skills carry no tool restrictions in Antigravity; shell scope rests on skill-body instructions |
 | 10 | Medium | LLM06 | No hook-enforced shell restrictions: plugin hooks are not shipped, so `run_command` scope for the five shell-holding agents rests on `sandbox` policy and prompt text |
 | 11 | Medium | LLM06 | Subagents inherit the parent's permission and sandbox settings, so frontmatter `commandExecutionPolicy: sandbox` does not override a permissive user setting |
 | 12 | Low | LLM10 | Concurrency cap (3) is instruction-only; nothing in Antigravity enforces it |
-| 13 | Low | LLM01 | The diff and fix delta handed to a reviewer are composed by the orchestrator (scoped `git diff` plus tree snapshots); a skipped step leaves the reviewer without the change |
+| 13 | Low | LLM01 | The diff and fix delta handed to a reviewer are composed by the orchestrator (fixed `git diff` output plus tree snapshots); a skipped step leaves the reviewer without the change |
 | 14 | Medium | LLM01 | No content filter: web, MCP, shell output, and subagent results reach agents unfiltered; the Untrusted Content rule is text only |
+| 15 | Low | LLM06 | Git config guard race: a concurrent subagent with a write tool or a shell can change git config between the guard comparison and the next git call |

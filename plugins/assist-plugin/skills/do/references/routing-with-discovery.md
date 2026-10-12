@@ -4,7 +4,7 @@ How the `do` orchestrator discovers plugins/skills at runtime and how the ask ag
 
 ## Why discovery
 
-The static [agent-registry.md](agent-registry.md) covers the 14 known agents. Discovery extends routing to:
+The static [agent-registry.md](agent-registry.md) covers the 15 known agents. Discovery extends routing to:
 - Skills installed by other plugins that aren't in the registry yet
 - New agents added after this document was last updated
 - Task-specific tools a subagent should know about, even if the orchestrator doesn't invoke them directly
@@ -21,7 +21,7 @@ Discovery is additive. It never removes or overrides the static registry. It onl
    - Standalone subagents: `<workspace>/.agents/agents/*.md`, `~/.gemini/config/agents/*.md`
    - Skill frontmatter fields to read: `name`, `description`, `metadata.argument-hint`. Agent frontmatter fields to read: `name`, `description`, `model`, `tools`.
    - Skip plugins the user has disabled, and skip locations that do not exist.
-2. **Match description to task.** Compare the primary intent from Step 1 against each skill/agent `description` field. A match means the description's stated purpose overlaps with the task's core verb + object (e.g., task "generate a changelog" matches the `bump` skill's description).
+2. **Match description to task.** Compare the primary intent from Ingest against each skill/agent `description` field. A match means the description's stated purpose overlaps with the task's core verb + object (e.g., task "generate a changelog" matches the `bump` skill's description).
 3. **Rank candidates.** Prefer:
    - Exact match in the static registry (fastest path, no scanning needed)
    - Skill with narrower, more specific scope over a general-purpose one
@@ -67,7 +67,7 @@ Discovery runs alongside the existing registry match, but question-answering int
 ```
 Task → /do
   ↓
-Step 1: Classify primary intent
+Ingest: classify primary intent
   ↓
 Is the intent a QUESTION, LOOKUP, or RESEARCH task
 (answer something, find documentation, explain how X works)
@@ -78,7 +78,7 @@ AND NOT an implementation/review/planning task?
   │          search_web, read_url_content; build tier)
   │         Skip agent-registry table entirely.
   │
-  └─ NO  → continue with Step 2 (agent-registry.md table)
+  └─ NO  → continue with AgentSelection (agent-registry.md table)
             + optional discovery scan for non-registry skills
 ```
 
@@ -99,6 +99,6 @@ For mixed tasks (research feeding into implementation), split into separate plan
 ## Constraints
 
 - Discovery is read-only: it inspects frontmatter, it does not execute any skill/agent as part of the scan.
-- Never route to a discovered skill/agent without listing it in the plan for user approval (Step 4 in [SKILL.md](../SKILL.md)).
+- Never route to a discovered skill/agent without listing it in the plan for user approval (PlanApproval in [SKILL.md](../SKILL.md#planapproval)).
 - If discovery finds no better match than the static registry, use the static registry; don't introduce ambiguity for its own sake.
-- ask agent routing still requires plan creation and approval like any other agent; it is not a bypass of Steps 3-4.
+- ask agent routing still creates a plan. A plan of exactly one step routed to ask or explore (both read-only, no write tools) skips PlanApproval and goes to Preflight. An ask step inside a larger plan goes through PlanApproval like any other step.

@@ -4,6 +4,63 @@ All notable changes to assist-antigravity are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions track the upstream [`assist-plugin`](https://github.com/tjmonsi/assist-marketplace-plugin) release they are ported from, with an `-antigravity` suffix. Upstream history before the port is in [`plugins/assist-plugin/CHANGELOG.md`](plugins/assist-plugin/CHANGELOG.md).
 
+## [1.9.0-antigravity] - 2026-10-12
+
+Synced with upstream assist-plugin v1.9.0 (09ea02d). Not yet verified live: the `intake-reviewer` subagent, whether a full terminal block reaches `/do`, the `NeedsInput` relay with `send_message`, the post-step write-path check, and a `/do` run end to end.
+
+### Added
+
+- `intake-reviewer` subagent (build tier, `model: flash`): read-only review of a user-provided spec, requirements, or instructions file with `gather-requirements review` before `/do` plans write steps. It holds `view_file`, `list_dir`, `grep_search`, and `find_by_name`, `commandExecutionPolicy: "off"`, and `mainAgent: false`; the file is untrusted data and findings cite lines without quoting it. The plugin now has 15 subagents.
+- `skills/do/references/fsa-template.md`: rules T1 to T9, state kinds, the `## States` table format, the ten-field `fsa` terminal block, and the Dispatch prompt text `/do` pastes into every dispatch. Resume uses `send_message`; no subagent holds `ask_question`.
+- `## States` tables and terminal blocks for developer, reviewer, code-reviewer, intake-reviewer, create-test (developer-tester), and task-plan; qa ends with a terminal block and a Testing Gate verdict of `approved` or `returned`.
+- developer-tester `## Write scope`: nine test-path globs and four denials (dot-prefixed segments; files named `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` at any depth; paths over 4096 characters; NUL). The agent follows it as text; no hook enforces it.
+- `/do` post-step write-path check: tree snapshots before and after each step, one fixed `git diff --name-only --no-renames` per check, and string comparison against the step's approved Writes and the Write scope. Each mismatch is a finding recorded in the step's Review field and shown at Display; it goes to the fix loop only when the fixer can undo the write, with the step's diff passed as untrusted data. It detects after the write and blocks nothing. No subagent-chosen path or string is put into a command.
+- `scripts/validate.py` FSA check (port of upstream `check-fsa-tables.js`): ERROR on a malformed `## States` table, an `fsa` block with missing or misordered fields, a wrong `state`, `error_class`, `questions`, or `resume_at`, a `trace` that leaves the owning table, a table owner whose `### Terminal block` names another agent, and a Dispatch prompt text block that differs from the Terminal block template. Claude-ism warnings for `SendMessage`, `SubagentStop`, `SubagentHandback`, the two FSA hook names, `check-fsa-tables`, and "Base directory for this skill".
+- `llm-security-checklist.md` attack surfaces for `/deslop`, `intake-reviewer`, the `NeedsInput` relay, and `DECISIONS.md`.
+
+### Changed
+
+- `/do` is a finite-state Communicator: Ingest (`resume <plan>`, `stop`), Decompose (effect, writes, reads, active tests), Clarify, DependencyAnalysis, AgentSelection, Branch (intake reviews before approval), PlanApproval, Preflight, Dispatch, Display, and Cleanup, ending in Complete, Partial, Paused, Cancelled, or Error. Clarify, PlanApproval, and the relay use `ask_question`; a wave is one `invoke_subagent` call with at most 3 entries in workspace `inherit`. A single ask or explore step skips approval; a skipped approval question is not approval. Architectural decisions append to `DECISIONS.md` after approval, in `/do`'s words.
+- `NeedsInput` relay: questions reach the user verbatim with no Recommended mark and only narrowing added options ("Skip it", "Fail the step"); answers never widen a step. `/do` resumes the subagent with `send_message` to its conversation ID, and starts it again with `invoke_subagent` when it was killed. Relays are bounded at 3 per phase and 10 per step.
+- A review gate that reaches its bound ends with one binding code-reviewer pass: `approved` completes the step and `returned` fails it. This replaces the port's ask-the-user Iteration Cap in `review-protocol.md`, `fix-phase-rules.md`, `planning-review-agents.md`, `reviewer-adversarial-reflection.md`, `assist-plugin-rule.md`, and `llm-security-checklist.md`.
+- Review protocol: a gate-per-artifact table, the gate prompt contents (including the port's scoped diff and fix delta), verdict reading, and test-path findings routed to developer-tester (fix-phase Rule 1b). The plan format gains Partial, Paused, and Error, an "Approved:" bullet, `## Intake Findings`, Effect, Writes, Reads, Active tests, Out of scope, and the step statuses `waiting-user`, `failed`, and `skipped`.
+- One coverage bar of >=70% across rules, `run-test`, `integrated-test`, qa, docs, and READMEs.
+- debug and technical-writing steps route to developer with the skill's absolute path copied from agy's "Available skills" list. general-purpose is no longer a fallback; unmatched work goes to Clarify.
+- pentest active tests under `/do` run only the commands the approved plan lists; qa reports any other in `out_of_scope`. The Confirmation Path now covers qa runs started outside `/do`.
+- ask lists the agent that would help in `out_of_scope` when it cannot answer; requirements-gatherer and gather-requirements end each elicitation round with `NeedsInput`; the requirements review treats its document as untrusted data.
+- Docs and counts: 15 subagents in `plugin.json`, both READMEs (Differences rows for the write scope, the terminal-block log, the `NeedsInput` resume, and the named-skill path), SPECIFICATION, ARCHITECTURE, TOKEN_OPTIMIZATION, the agent registry, model routing, and the `BUILD_TIER` table. `AGENTS.md` names upstream v1.9.0, adds `GEMINI.md` to the context-file row, adds sync-table rows for `SendMessage`, `run_in_background`, the skill base directory, and `check-fsa-tables.js`, and describes the FSA check. `plugin.json` `version` is 1.9.0; NOTICE files name upstream v1.9.0.
+
+### Security
+
+- `/do` copies the repo git config at Ingest (`config`, `config.worktree`, `<git-dir>/commondir`, and the root `.git` file in a linked worktree) and scans it for keys that run code (`core.pager`, `core.fsmonitor`, `filter.*`, `diff.external`, `diff.*.command`, `diff.*.textconv`, `include.path`, `includeIf.*`). A match raises a question before the first git call (for example `filter.lfs` when git-lfs is set up); declining ends in Cancelled (`config-declined`). A later change to the copy dispatches nothing new and ends in Paused, named at Display.
+- Every git call `/do` runs uses `--no-pager -c core.fsmonitor=false`; every `git diff` adds `--no-ext-diff --no-textconv`; the working-tree `git diff` and `git status` add `--ignore-submodules=all`. Global and system git config, and submodule configs, are not guarded.
+- Hooks and nested `.git`: every git call also carries `-c core.hooksPath=/dev/null -c safe.bareRepository=explicit` (Git 2.38 or later) and runs from the repository top level; the guard copy records `info/exclude` and every `.git` entry from the working directory up to the top level.
+- No plan-file or subagent-supplied string is placed in any command; paths are selected from command output by string comparison.
+- The write-path check runs whenever a step settles, not only when a valid block arrives.
+- `llm-security-checklist.md` Open Gaps row 15 records the race between the guard comparison and the next git call.
+
+### Fixed
+
+- `scripts/sync-writing-standard.py` wrote files with `Path.write_text(..., newline="")`, which raises `TypeError` on Python 3.9; it now uses `open(..., newline="")`. Both scripts state Python 3.9 as the floor.
+- `scripts/sync-writing-standard.py` silently replaced non-bullet text inside a Report Writing Standard block; it now stops with an error naming the file and line.
+- `scripts/validate.py` crashed with a traceback when the sync script failed to load or lacked a function; it now reports an ERROR line.
+- `rules/writing-standard.md` tells agents not to run the sync script in another project.
+- `/do` DependencyAnalysis runs a step that commits, pushes, approves or comments on a PR, or writes `AGENTS.md`, `GEMINI.md`, `.agents/**`, or `DECISIONS.md` alone in its wave, as `llm-security-checklist.md` asks.
+- `llm-security-checklist.md` lists `/deslop` as an LLM01 surface, and its `/do` references use state names.
+
+### Removed
+
+- The port's main-agent fallback in `/do` ("handles it directly if no agent matches").
+- Deliberately not ported from upstream v1.9.0:
+  - `fsa-write-bar` hook. Antigravity hook payloads carry no agent identity, and a PreToolUse hook owes a decision on every write (`allow` auto-approves, `ask` prompts each time). The Write scope text, developer-tester's tool list, and the `/do` write-path check stand in, without a blocking claim.
+  - `fsa-log` hook. Antigravity has no SubagentStop event and its PostToolUse hook receives no tool result. `/do` parses every terminal block itself; a direct run outside `/do` gets no log.
+  - `scripts/check-fsa-tables.js`. The port has no hook tables to compare; `validate.py` checks the markdown instead.
+  - The `health` skill's FSA self-tests (the port ships no `health` skill and no hooks).
+  - "Change models" at plan approval. The agent file's `model:` line overrides `invoke_subagent`'s `Model` parameter on agy 1.3.3, so a model change goes through `scripts/set-model-profile.sh` and a restart.
+  - The worktree part of the Cleanup state and the worktree-cleanup "Cleanup state" wording. `/do` creates no worktrees; Cleanup only chooses the terminal.
+  - "Permission prompts remain the backstop" in pentest Rule of Engagement 3: a subagent's approval request may be denied rather than prompted, and Turbo asks nothing.
+  - `.claude-plugin/marketplace.json`, `MARKETPLACE.md`, and upstream's `.gitignore` change (the port already ignores the `.agent` subfolders it uses).
+
 ## [1.8.0-antigravity] - 2026-10-12
 
 Synced with upstream assist-plugin v1.8.0 (442d34e). Not yet verified live: `/deslop` and the `/do` plan table and approval loop.

@@ -2,7 +2,7 @@
 
 Decision tables for assigning model tiers to subagents in the `do` orchestrator.
 
-Antigravity subagent frontmatter accepts three `model` values: `pro`, `flash`, and `inherit` (follow the model the user selected in Antigravity's model selector). This plugin groups its 14 subagents into three tiers and ships profiles that map each tier to one of those values.
+Antigravity subagent frontmatter accepts three `model` values: `pro`, `flash`, and `inherit` (follow the model the user selected in Antigravity's model selector). This plugin groups its 15 subagents into three tiers and ships profiles that map each tier to one of those values.
 
 ## Orchestrator
 
@@ -21,6 +21,7 @@ The orchestrator (`do` skill) and every other skill run on the main agent, which
 | **developer-tester** | build | `flash` | `inherit` | high |
 | **devops** | build | `flash` | `inherit` | high |
 | **general-purpose** | build | `flash` | `inherit` | medium |
+| **intake-reviewer** | build | `flash` | `inherit` | medium |
 | **planner** | build | `flash` | `inherit` | xhigh |
 | **qa** | build | `flash` | `inherit` | high |
 | **requirements-gatherer** | build | `flash` | `inherit` | medium |
@@ -73,7 +74,7 @@ After switching profiles, restart Antigravity (or the `agy` session) and re-run 
 ### Build tier: core development
 - Implementation, testing, requirements, DevOps, planning
 - Balances reasoning quality against latency and quota
-- **Agents:** ask, developer, developer-tester, devops, general-purpose, planner, qa, requirements-gatherer, worker
+- **Agents:** ask, developer, developer-tester, devops, general-purpose, intake-reviewer, planner, qa, requirements-gatherer, worker
 - **Strategy:** Iterate and refine if the first pass is incomplete; the review tier catches what slips through
 
 ### Review tier: decisions and quality gates
@@ -105,7 +106,7 @@ The tier table is the default. Adjust it only by editing agent files or switchin
 - Under the `gemini-flash` profile these run on `flash`; tell the user review depth drops when they choose that profile.
 
 ### Fix phase (non-negotiable)
-- **All fixing agents:** Build tier (`flash` under the `gemini` profile), never the review tier
+- **All fixing agents (including developer-tester):** Build tier (`flash` under the `gemini` profile), never the review tier
 - **Rationale:** Applying specific, already-identified fixes needs precision, not open-ended judgment, and the review tier stays free for the verification pass
 - **Scope constraint:** Fix phase only modifies code or docs tied to the reviewer's findings
 - **See:** [fix-phase-rules.md](fix-phase-rules.md) for constraints and procedure

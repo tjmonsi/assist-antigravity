@@ -1,6 +1,6 @@
 # assist-plugin
 
-Token-optimized software development plugin for Google Antigravity. It orchestrates 14 specialized subagents and 19 skills across the full development lifecycle. This is the Antigravity port of [assist-plugin](https://github.com/tjmonsi/assist-marketplace-plugin), originally built for Claude Code.
+Token-optimized software development plugin for Google Antigravity. It orchestrates 15 specialized subagents and 19 skills across the full development lifecycle. This is the Antigravity port of [assist-plugin](https://github.com/tjmonsi/assist-marketplace-plugin), originally built for Claude Code.
 
 ## Install
 
@@ -26,7 +26,7 @@ Use `/do` to route any development task to the right agent:
 /do design the API schema for the new feature
 ```
 
-## Subagents (14)
+## Subagents (15)
 
 The orchestrator starts these with `invoke_subagent`; they are not slash commands. Tiers show the shipped `gemini` profile.
 
@@ -43,9 +43,10 @@ The orchestrator starts these with `invoke_subagent`; they are not slash command
 | **devops** | CI/CD, infrastructure, deployment | build (`flash`) |
 | **researcher** | Web research, documentation audit | review (`pro`) |
 | **code-reviewer** | Formal code review (specialized) | review (`pro`) |
-| **general-purpose** | Catch-all for unmatched tasks | build (`flash`) |
+| **intake-reviewer** | Read-only intake review of a user-provided spec or requirements file before `/do` plans write steps | build (`flash`) |
+| **general-purpose** | Ad-hoc analysis and experimentation when /do explicitly matches it; unmatched work goes to Clarify | build (`flash`) |
 | **explore** | Fast read-only code search | fast (`flash`) |
-| **worker** | Multi-discipline fallback | build (`flash`) |
+| **worker** | Multi-discipline: code + test + review combined for small features | build (`flash`) |
 
 ## Models
 
@@ -98,7 +99,7 @@ Antigravity exposes every skill as a slash command. The text typed after the com
 ## Governance
 
 - **Security:** OWASP top 10 review on code changes
-- **Testing:** >70% coverage required for new code
+- **Testing:** >=70% coverage required for new code
 - **Review:** Code reviewer sign-off required before merge
 - **LLM security:** OWASP Top 10 for LLM review on changes to agents, skills, rules, context files, and plugin config
 - See [rules/assist-plugin-rule.md](rules/assist-plugin-rule.md) and [rules/llm-security-checklist.md](rules/llm-security-checklist.md); [rules/assist-routing.md](rules/assist-routing.md) is the always-on routing rule

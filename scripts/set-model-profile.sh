@@ -10,7 +10,7 @@ set -euo pipefail
 # Agent -> tier table. scripts/validate.py parses these three lines; keep the
 # NAME=(...) one-line form and keep them in sync with plugins/assist-plugin/agents/.
 REVIEW_TIER=(code-reviewer reviewer researcher solutions-architect)
-BUILD_TIER=(ask developer developer-tester devops general-purpose planner qa requirements-gatherer worker)
+BUILD_TIER=(ask developer developer-tester devops general-purpose intake-reviewer planner qa requirements-gatherer worker)
 FAST_TIER=(explore)
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

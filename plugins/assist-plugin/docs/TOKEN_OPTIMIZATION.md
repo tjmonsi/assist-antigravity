@@ -10,11 +10,11 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 ## Included ✓
 
-### Agents (14)
+### Agents (15)
 - **All core agents:** developer, developer-tester, reviewer, planner
 - **All testing agents:** qa, solutions-architect
 - **All planning agents:** requirements-gatherer, devops
-- **All support agents:** ask, researcher, code-reviewer, explore, general-purpose, worker
+- **All support agents:** ask, researcher, code-reviewer, intake-reviewer, explore, general-purpose, worker
 
 **Why:** Full agent coverage ensures task routing flexibility without off-loading to external plugins.
 
@@ -66,7 +66,7 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 
 ### Hooks & CI Infrastructure
 - **Why excluded:** Git hooks, CI pipelines, and project-specific automation belong to each project; governance is in rules
-- **Antigravity port:** ships no hooks. `sa-mermaid-only` needs the calling agent's identity, which Antigravity hook payloads do not carry. `health-check` needs a SessionStart event and plugin data, which Antigravity does not document. `doc-cli-guard` is deferred pending a live test of its no-match decision. The command-shape rules they enforced live in skill and agent text instead. Upstream v1.8.0's `injection-filter`, `prose-gate`, and `prose-advisor` are not ported either: Antigravity's PostToolUse hook cannot read or change a tool result, and a PreToolUse write gate would need a decision on every file write. The compact writing standard loads as an `always_on` rule (`rules/writing-standard-compact.md`, 1,504 bytes; with `assist-routing.md` (936 bytes) the always-on rules total 2,440 bytes) in place of upstream's `writing-context` hook. Upstream's `terse` output style has no Antigravity equivalent <!-- claude-ref-ok -->
+- **Antigravity port:** ships no hooks. `sa-mermaid-only` needs the calling agent's identity, which Antigravity hook payloads do not carry. `health-check` needs a SessionStart event and plugin data, which Antigravity does not document. `doc-cli-guard` is deferred pending a live test of its no-match decision. The command-shape rules they enforced live in skill and agent text instead. Upstream v1.8.0's `injection-filter`, `prose-gate`, and `prose-advisor`, and v1.9.0's `fsa-write-bar` and `fsa-log`, are not ported either: Antigravity hook payloads do not name the calling agent, there is no SubagentStop event, Antigravity's PostToolUse hook cannot read or change a tool result, and a PreToolUse write gate would need a decision on every file write. The compact writing standard loads as an `always_on` rule (`rules/writing-standard-compact.md`, 1,504 bytes; with `assist-routing.md` (936 bytes) the always-on rules total 2,440 bytes) in place of upstream's `writing-context` hook. Upstream's `terse` output style has no Antigravity equivalent <!-- claude-ref-ok -->
 - **Alternative:** Implement hooks in your git repo or CI/CD
 
 ### Examples & Tutorials
@@ -136,7 +136,7 @@ It runs on the build tier by default. Its tools are view_file, write_to_file, re
 
 | Aspect | assist-plugin | software-development | Ratio |
 |--------|---------------|----------------------|-------|
-| Agents | 14 | 12 | 117% |
+| Agents | 15 | 12 | 125% |
 | Skills | 19 | 20+ | 95% |
 | Reference files | 4 | 20+ | 20% |
 | Documentation | 3 pages | 50+ pages | 6% |
@@ -176,7 +176,7 @@ To add capabilities without bloating token count:
 
 **Architecture-First Approach** (shipped `gemini` profile; see [model-routing.md](../skills/do/references/model-routing.md)):
 - **Review tier (`pro`)** for foundational decisions: solutions-architect, researcher, reviewer, code-reviewer
-- **Build tier (`flash`)** for execution: ask, developer, developer-tester, planner (move to `pro` for complex planning), qa, requirements-gatherer, devops, general-purpose, worker
+- **Build tier (`flash`)** for execution: ask, developer, developer-tester, planner (move to `pro` for complex planning), qa, requirements-gatherer, intake-reviewer, devops, general-purpose, worker
 - **Fast tier (`flash`)** for pure search: explore
 - **Orchestrator:** the model the user selects in Antigravity's model selector
 - The `inherit` profile collapses all tiers onto the selected model, which removes this cost split

@@ -14,8 +14,12 @@ A block is the heading line plus everything up to the next level-1 or level-2 he
 outside a code fence, or the end of the file. The heading line is kept as written, and so
 is a trailing horizontal rule before the next heading.
 
+A block whose body holds anything other than bullets, blank lines, and one trailing
+horizontal rule is an operational error: move that text under another heading.
+
 Exit codes: 0 in sync (or synced), 1 drift found by --check, 2 operational error.
-Standard library only. Port of upstream scripts/sync-writing-standard.js (v1.8.0).
+Standard library only; requires Python 3.9 or later. Port of upstream
+scripts/sync-writing-standard.js (v1.8.0).
 """
 from __future__ import annotations
 
@@ -137,7 +141,27 @@ def render_block(heading: str, old_body: list[str], bullets: list[str], at_end: 
     return out
 
 
-def sync_text(text: str, bullets: list[str]) -> tuple[str, int]:
+def check_block_body(path: Path | str, start: int, body: list[str]) -> None:
+    """Raise SyncError if a block body holds a line that is not a bullet.
+
+    Trailing blank lines and one trailing horizontal rule are allowed. `start` is the
+    0-based index of the heading line, so body[i] sits on line start + i + 2.
+    """
+    end = len(body)
+    while end and not body[end - 1].strip():
+        end -= 1
+    if end and RULE_LINE_RE.match(body[end - 1]):
+        end -= 1
+    for index in range(end):
+        line = body[index]
+        if line.strip() and not line.startswith("- "):
+            raise SyncError(
+                f"{path}: line {start + index + 2}: Report Writing Standard block holds "
+                "non-bullet text; move it under another heading"
+            )
+
+
+def sync_text(text: str, bullets: list[str], path: Path | str = "<text>") -> tuple[str, int]:
     """Return (synced text, number of blocks) for one file's contents."""
     eol = "\r\n" if "\r\n" in text else "\n"  # text was read with newline="" so CRLF survives
     lines = re.split(r"\r?\n", text)
@@ -145,6 +169,8 @@ def sync_text(text: str, bullets: list[str]) -> tuple[str, int]:
     if final_newline:
         lines.pop()
     blocks = find_blocks(lines)
+    for start, end in blocks:
+        check_block_body(path, start, lines[start + 1:end])
     for start, end in reversed(blocks):
         at_end = end == len(lines)
         lines[start:end] = render_block(lines[start], lines[start + 1:end], bullets, at_end)
@@ -158,7 +184,7 @@ def drifted_files(root: Path, bullets: list[str]) -> tuple[list[tuple[Path, str]
     for path in target_files(root):
         with open(path, encoding="utf-8", newline="") as handle:
             original = handle.read()
-        synced, blocks = sync_text(original, bullets)
+        synced, blocks = sync_text(original, bullets, path.relative_to(root).as_posix())
         if not blocks:
             continue
         file_count += 1
@@ -188,7 +214,8 @@ def main(argv: list[str]) -> int:
         drifted, block_count, file_count = drifted_files(root, bullets)
         if not check:
             for path, synced in drifted:
-                path.write_text(synced, encoding="utf-8", newline="")
+                with open(path, "w", encoding="utf-8", newline="") as handle:
+                    handle.write(synced)
     except (SyncError, OSError, UnicodeDecodeError) as exc:
         print(f"sync-writing-standard: {exc}", file=sys.stderr)
         return 2

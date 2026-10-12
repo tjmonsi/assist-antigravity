@@ -4,7 +4,7 @@
 
 assist-plugin follows these core principles:
 
-1. **Orchestration over monolith**: One skill (`do`) routes to 14 specialized subagents
+1. **Orchestration over monolith**: One skill (`do`) routes to 15 specialized subagents
 2. **Agent specialization**: Each agent handles one domain; no overlapping responsibilities
 3. **Model routing**: Task complexity determines the subagent tier (review, build, fast), mapped to Antigravity's `pro`/`flash`/`inherit` by a profile
 4. **Review gates**: Security + testing + code review checkpoints before merge
@@ -19,7 +19,7 @@ assist-plugin/
 ├── plugin.json                # name, version, description (Antigravity manifest)
 ├── README.md                  # plugin quick reference
 ├── CHANGELOG.md, LICENSE, NOTICE
-├── agents/<name>.md           # 14 subagents (subagent: true, model, tools, commandExecutionPolicy)
+├── agents/<name>.md           # 15 subagents (subagent: true, model, tools, commandExecutionPolicy)
 ├── skills/<name>/SKILL.md     # 19 skills, each exposed as /<name>
 │   └── references/            # progressive-disclosure detail loaded on demand
 ├── rules/
@@ -66,7 +66,7 @@ The plugin ships no `metadata.json` files, no hooks directory, no `hooks.json`, 
         ┌────────▼────────────────────┐
         │   Review Gate               │
         │  - Security (OWASP)         │
-        │  - Testing (>70% coverage)  │
+        │  - Testing (>=70% coverage) │
         │  - Code Review (sign-off)   │
         └────────┬────────────────────┘
                  │
@@ -103,7 +103,8 @@ The plugin ships no `metadata.json` files, no hooks directory, no `hooks.json`, 
 - **researcher**: Web research, documentation, best practices
 - **explore**: Fast code search and location discovery
 - **ask**: Repository and optional web Q&A
-- **general-purpose**: Catch-all for unmatched tasks
+- **intake-reviewer**: Read-only review of a user-provided spec, requirements, or instructions file before /do plans write steps
+- **general-purpose**: Ad-hoc analysis and experimentation when /do explicitly matches it; unmatched work goes to Clarify
 - **worker**: Multi-discipline (code + review + test combined)
 
 ### By Model Tier
@@ -111,7 +112,7 @@ The plugin ships no `metadata.json` files, no hooks directory, no `hooks.json`, 
 | Tier | `gemini` profile | `inherit` profile | Agents | Use Cases |
 |------|------------------|-------------------|--------|-----------|
 | **fast** | `flash` | `inherit` | explore | Code search, fast lookup |
-| **build** | `flash` | `inherit` | ask, developer, developer-tester, planner (`pro` available by editing its file), qa, requirements-gatherer, devops, general-purpose, worker | Implementation, testing, planning, DevOps |
+| **build** | `flash` | `inherit` | ask, developer, developer-tester, planner (`pro` available by editing its file), qa, requirements-gatherer, intake-reviewer, devops, general-purpose, worker | Implementation, testing, planning, DevOps |
 | **review** | `pro` | `inherit` | reviewer, code-reviewer, solutions-architect, researcher | Architecture, design, research, security, decisions |
 
 The orchestrator (`do`) and every other skill run on the model selected in Antigravity's model selector.
@@ -182,7 +183,7 @@ The orchestrator (`do`) and every other skill run on the model selected in Antig
 5. **Orchestrator delegates** with `invoke_subagent`:
    - Step 1: solutions-architect designs API
    - Step 2: developer implements code
-   - Step 3: reviewer checks security (OWASP) + tests (>70%)
+   - Step 3: reviewer checks security (OWASP) + tests (>=70%)
 
 6. **Orchestrator synthesizes:** Presents design + code + review
 
@@ -256,7 +257,7 @@ The orchestrator (`do`) and every other skill run on the model selected in Antig
 
 **Distribution (review tier reserved for decisions):**
 - **Fast tier:** 1 agent (search only)
-- **Build tier:** 9 agents (questions, implementation, planning, testing, DevOps, requirements)
+- **Build tier:** 10 agents (questions, implementation, planning, testing, DevOps, requirements, intake review)
 - **Review tier:** 4 agents (architecture, research, security, review)
 - **Orchestrator:** the user's selected model
 

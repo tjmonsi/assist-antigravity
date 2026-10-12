@@ -1,5 +1,5 @@
 {
   "name": "assist-plugin",
-  "version": "1.8.0",
-  "description": "Software development plugin with 19 skills, 14 subagents, and governance gates for full-lifecycle development from requirements to shipping"
+  "version": "1.9.0",
+  "description": "Software development plugin with 19 skills, 15 subagents, and governance gates for full-lifecycle development from requirements to shipping"
 }
