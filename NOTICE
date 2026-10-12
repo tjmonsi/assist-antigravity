@@ -1,7 +1,7 @@
 NOTICE
 
 assist-antigravity is the Google Antigravity port of assist-plugin from
-https://github.com/tjmonsi/assist-marketplace-plugin (assist-plugin v1.9.0, a Claude Code
+https://github.com/tjmonsi/assist-marketplace-plugin (assist-plugin v1.10.0, a Claude Code
 plugin by Toni-Jan Keith Monserrat). The port converts the manifest, subagent frontmatter, tool
 names, model tiers, and rules to Antigravity formats; the agent roster, skills, references, and
 governance gates come from the upstream plugin. The upstream notice below is preserved.

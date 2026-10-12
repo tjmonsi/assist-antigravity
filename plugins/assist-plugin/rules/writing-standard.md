@@ -135,6 +135,7 @@ The mechanical rules skip the regions below.
 
 - **Code:** fenced blocks (three or more backticks or tildes) and inline code spans. An unclosed fence runs to the end of the text. Indented code blocks are not recognized; fence code instead.
 - **Mermaid:** Mermaid diagrams sit in fenced blocks and are skipped with them.
+- **Voice scripts:** `/voice-script` keeps the script text in fenced `text` blocks, so the Code exemption covers its em dashes and ellipses as pause marks; the header and notes follow the standard.
 - **Quotations:** blockquote lines, and text inside straight or curly double quotes on one line (up to 300 characters). The quote marks themselves stay, so curly delimiters are still caught. Single quotes do not delimit quotations because apostrophes would pair with them.
 - **Link targets:** the URL in `[text](url)`, reference definitions, autolinks, and bare URLs. Link text is prose.
 - **Traceability markers:** `[FR-045]`, `[SPEC-003 -> FR-045 -> UC-012 -> AC-2]`, and the same with Unicode arrows.

@@ -73,6 +73,13 @@ CLAUDE_ISMS = [
     ("FSA hook name", re.compile(r"\bfsa-(?:write-bar|log)\b")),
     ("check-fsa-tables", re.compile(r"check-fsa-tables")),
     ("Base directory for this skill", re.compile(r"Base directory for this skill")),
+    # Upstream v1.10.0 hook, health report, settings, and permission rules that the port does not ship.
+    ("commit-attribution-guard", re.compile(r"commit-attribution-guard")),
+    ("assist-plugin:health", re.compile(r"assist-plugin:health")),
+    ("attribution.commit/pr setting", re.compile(r"\battribution\.(?:commit|pr)\b")),
+    ("hooks-disabled.json", re.compile(r"hooks-disabled\.json")),
+    ("Edit(...) permission rule", re.compile(r"\b(?:Edit|Write|Read)\([^)\n]*\)")),
+    ("through Other", re.compile(r"\bthrough Other\b")),
 ]
 # These two patterns also occur legitimately inside fenced code (SQL placeholders such as $1,
 # Rust macros), so they are checked outside fenced code blocks only.
@@ -81,14 +88,16 @@ PROSE_ONLY_ISMS = {"$0/$1 positional args", "!`cmd` dynamic context"}
 CLAUDE_REF_OK = "<!-- claude-ref-ok -->"
 
 LINK_RE = re.compile(r"(?<!!)\[[^\]\n]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
-FENCE_RE = re.compile(r"^\s*(```|~~~)")
+FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
+# A fence closes only on a line of the same character, at least as long as the opener, with nothing
+# after it but whitespace (CommonMark), so a ```` block can hold ``` lines.
+FENCE_CLOSE_RE = re.compile(r"^\s*(`{3,}|~{3,})\s*$")
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 POLICY_LINE_RE = re.compile(r"^commandExecutionPolicy:\s*(?:off|Off|OFF)\s*(?:#.*)?$", re.M)
 TIER_RE = re.compile(r"^(REVIEW|BUILD|FAST)_TIER=\(([^)]*)\)\s*$", re.M)
 # C0 control bytes other than TAB (0x09) and LF (0x0a). CR is included: plugin files use LF only,
 # and a stray CR (or BS/FF) usually means a "\r"/"\b"/"\f" escape was interpreted while writing.
 CONTROL_BYTES_RE = re.compile(rb"[\x00-\x08\x0b-\x1f]")
-FENCE_BYTES_RE = re.compile(rb"^\s*(```|~~~)")
 # Invisible Unicode in plugin markdown and plugin.json can hide instructions from reviewers. Bidi
 # controls (including the LRM, RLM, and ALM marks) and tag characters are errors; zero-width
 # characters and the BOM are warnings because they have a few legitimate uses.
@@ -101,6 +110,17 @@ MAX_LOCATIONS = 5
 # fenced code, inline code, and straight double-quoted spans (quoted examples stay as written).
 PROSE_TELL_RE = re.compile("[\u2014\u2015\u2018\u2019\u201c\u201d]")
 DOUBLE_QUOTED_RE = re.compile(r'"[^"\n]{0,300}"')
+
+
+def fence_step(line: str, fence: tuple[str, int] | None) -> tuple[bool, tuple[str, int] | None]:
+    """(is_fence_line, new_state) for one line; state is None outside a fence, else (char, length)."""
+    if fence is None:
+        m = FENCE_RE.match(line)
+        return (True, (m.group(1)[0], len(m.group(1)))) if m else (False, None)
+    m = FENCE_CLOSE_RE.match(line)
+    if m and m.group(1)[0] == fence[0] and len(m.group(1)) >= fence[1]:
+        return True, None
+    return False, fence
 
 
 # FSA state tables and terminal blocks (rules in skills/do/references/fsa-template.md).
@@ -454,12 +474,10 @@ def check_profile_table(root: Path, agent_names: list[str], models: dict[str, st
 
 def iter_prose_lines(text: str):
     """Yield (line_no, line) outside fenced code blocks, with inline code removed."""
-    in_fence = False
+    fence = None
     for no, line in enumerate(text.split("\n"), 1):
-        if FENCE_RE.match(line):
-            in_fence = not in_fence
-            continue
-        if not in_fence:
+        is_fence, fence = fence_step(line, fence)
+        if not is_fence and fence is None:
             yield no, INLINE_CODE_RE.sub("", line)
 
 
@@ -488,13 +506,12 @@ def check_control_bytes(root: Path, report: Report) -> None:
     for path in sorted(root.rglob("*.md")):
         data = path.read_bytes()
         bad, tabs = [], []
-        in_fence = False
+        fence = None
         for no, line in enumerate(data.split(b"\n"), 1):
             for m in CONTROL_BYTES_RE.finditer(line):
                 bad.append(f"{no}:0x{m.group()[0]:02x}")
-            if FENCE_BYTES_RE.match(line):
-                in_fence = not in_fence
-            elif not in_fence and b"\t" in line:
+            is_fence, fence = fence_step(line.decode("utf-8", "replace"), fence)
+            if not is_fence and fence is None and b"\t" in line:
                 tabs.append(str(no))
         if bad:
             shown = ", ".join(bad[:MAX_LOCATIONS]) + (" ..." if len(bad) > MAX_LOCATIONS else "")
@@ -543,11 +560,10 @@ def check_claude_isms(root: Path, report: Report) -> None:
     for path in files:
         lines = [ln for ln in path.read_text(encoding="utf-8").split("\n") if CLAUDE_REF_OK not in ln]
         text = "\n".join(lines)
-        in_fence, outside = False, []
+        fence, outside = None, []
         for ln in lines:
-            if FENCE_RE.match(ln):
-                in_fence = not in_fence
-            elif not in_fence:
+            is_fence, fence = fence_step(ln, fence)
+            if not is_fence and fence is None:
                 outside.append(ln)
         prose = "\n".join(outside)
         counts = {
@@ -571,7 +587,7 @@ def check_writing_standard_sync(root: Path, report: Report) -> None:
     module = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(module)
-    except Exception as exc:  # a broken sync script must yield an ERROR line, not a traceback
+    except (Exception, SystemExit) as exc:  # a broken sync script must yield an ERROR line, not a traceback or a silent exit
         report.error(SYNC_SCRIPT, f"cannot load ({exc.__class__.__name__}: {exc})")
         return
     missing = [name for name in ("load_compact", "drifted_files", "SyncError", "COMPACT_REL")
@@ -585,7 +601,7 @@ def check_writing_standard_sync(root: Path, report: Report) -> None:
     except module.SyncError as exc:
         report.error(root / module.COMPACT_REL, str(exc))
         return
-    except Exception as exc:
+    except (Exception, SystemExit) as exc:
         report.error(SYNC_SCRIPT, f"failed ({exc.__class__.__name__}: {exc})")
         return
     for path, _ in drifted:
@@ -613,12 +629,11 @@ def section_lines(lines: list[str], heading: str) -> list[str]:
     level = len(heading) - len(heading.lstrip("#"))
     for index, line in enumerate(lines):
         if line.rstrip() == heading:
-            out, in_fence = [], False
+            out, fence = [], None
             for later in lines[index + 1:]:
-                if FENCE_RE.match(later):
-                    in_fence = not in_fence
+                _, fence = fence_step(later, fence)
                 stripped = later.lstrip("#")
-                if (not in_fence and later.startswith("#") and stripped.startswith(" ")
+                if (fence is None and later.startswith("#") and stripped.startswith(" ")
                         and len(later) - len(stripped) <= level):
                     break
                 out.append(later)

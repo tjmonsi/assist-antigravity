@@ -22,3 +22,6 @@ plugins/assist-plugin/agents/*.md.??????
 # Orchestration plans and research notes, kept local
 .agent/main-plan/
 .agent/research/
+
+# agy test screenshots, kept local
+docs/tests/images/

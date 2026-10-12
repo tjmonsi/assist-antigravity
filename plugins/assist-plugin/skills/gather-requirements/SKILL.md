@@ -104,6 +104,8 @@ Every requirement must be **Necessary**, **Unambiguous**, **Testable**, **Feasib
 | `URD-<project-slug>.md` | [references/urd-template.md](references/urd-template.md) |
 | `FR-NFR-<project-slug>.md` | [references/fr-nfr-template.md](references/fr-nfr-template.md) |
 
+Write scope: write only `BRD-*.md`, `URD-*.md`, `FR-NFR-*.md`, and `requirements-*.json` at the workspace root. Before writing any other path, name it and get the user's confirmation with `ask_question`. In a subagent, list that path in `out_of_scope` instead of writing it; under `/do`, the step's approved Writes are the confirmation. Nothing enforces this list.
+
 With `--json`, also emit `requirements-<project-slug>.json` using the schema in [references/json-output-format.md](references/json-output-format.md). The JSON is a projection of the same requirements, not a second source of truth.
 
 ## Out-of-scope handling

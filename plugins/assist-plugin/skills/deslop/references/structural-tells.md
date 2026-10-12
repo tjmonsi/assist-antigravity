@@ -18,7 +18,7 @@ Three items, adjectives, or parallel clauses where one or two carry the content 
 A sentence that spends half its length on what something is not ("not X but Y", "It's not about X. It's about Y.", "less X, more Y"). The `binary-contrast` family in `rules/writing-standard.md` lists three fixed forms; this entry covers every variant, including the two-sentence form.
 
 - **Fix:** state what it is and drop the negated half.
-- **Keep:** a correction of a belief the reader holds and the text names, such as a ticket titled with the wrong cause.
+- **Keep:** a correction of a belief the reader holds and the text names, such as a ticket titled with the wrong cause, or a departure from a plan, spec, or earlier statement the text names ("X, not the Y the plan described").
 - Before: "The outage was not a capacity problem but a configuration problem." After: "The outage was a configuration problem."
 - Before: "It's not about speed. It's about trust." After: "It's about trust."
 

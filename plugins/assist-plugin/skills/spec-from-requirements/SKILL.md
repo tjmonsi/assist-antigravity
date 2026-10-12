@@ -58,6 +58,8 @@ spec-[feature-name].md
 
 Create `specs/` if it does not exist.
 
+Write scope: write only `specs/spec-*.md`, `specs/spec-*.json`, `specs/openapi/*.json`, and `specs/openapi/*.yaml` at the workspace root, and `spec-*.md` and `spec-*.json` in `<submodule>/specs/` one directory below it. Before writing any other path, such as a nested submodule or a submodule OpenAPI file, name it and get the user's confirmation with `ask_question`. In a subagent, list that path in `out_of_scope` instead of writing it; under `/do`, the step's approved Writes are the confirmation. Nothing enforces this list.
+
 ## Metadata block
 
 Every spec opens with this block, whatever the template:

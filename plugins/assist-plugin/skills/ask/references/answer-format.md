@@ -30,7 +30,7 @@ Template for `/ask` responses. Fill every section. Omit "Code" if no snippet app
 ## Rules
 
 - **Answer:** Lead with the conclusion. Skip "Great question" or similar filler. Two to three sentences max, and the first sentence must state the answer, not restate the question.
-- **Found In:** List every file or URL the answer relies on. Use relative repo paths (e.g., `skills/ask/SKILL.md`), not absolute paths. Use full URLs for web sources. No claim in "Answer" without a matching entry here.
+- **Found In:** List every file or URL the answer relies on. Show the relative repo path as the visible text (for example `calc.py` or `skills/ask/SKILL.md`); the link target may only be a relative path or a `file://` URI for that same file. Use full URLs for web sources. No claim in "Answer" without a matching entry here.
 - **Code:** Quote the exact snippet from the file. Include the file path and line range under the block. Skip this section entirely if no code applies.
 - **Learn More:** Link 1-4 related resources (docs, related skills, external references). Skip if nothing further applies.
 - **Active voice, important subject first.** "The loader parses the config" not "The config is parsed by the loader".

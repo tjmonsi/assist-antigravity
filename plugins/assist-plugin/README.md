@@ -1,6 +1,6 @@
 # assist-plugin
 
-Token-optimized software development plugin for Google Antigravity. It orchestrates 15 specialized subagents and 19 skills across the full development lifecycle. This is the Antigravity port of [assist-plugin](https://github.com/tjmonsi/assist-marketplace-plugin), originally built for Claude Code.
+Token-optimized software development plugin for Google Antigravity. It orchestrates 15 specialized subagents and 21 skills across the full development lifecycle. This is the Antigravity port of [assist-plugin](https://github.com/tjmonsi/assist-marketplace-plugin), originally built for Claude Code.
 
 ## Install
 
@@ -46,7 +46,7 @@ The orchestrator starts these with `invoke_subagent`; they are not slash command
 | **intake-reviewer** | Read-only intake review of a user-provided spec or requirements file before `/do` plans write steps | build (`flash`) |
 | **general-purpose** | Ad-hoc analysis and experimentation when /do explicitly matches it; unmatched work goes to Clarify | build (`flash`) |
 | **explore** | Fast read-only code search | fast (`flash`) |
-| **worker** | Multi-discipline: code + test + review combined for small features | build (`flash`) |
+| **worker** | Multi-discipline: code and tests together for small features; `/do` still runs the review gates after it | build (`flash`) |
 
 ## Models
 
@@ -54,9 +54,9 @@ The orchestrator starts these with `invoke_subagent`; they are not slash command
 - Subagents run on the `model` value in their agent file. Switch every agent at once with `scripts/set-model-profile.sh <gemini|inherit|gemini-pro|gemini-flash> [plugin-dir]` from a clone of the repository; `inherit` makes every subagent follow the model selector.
 - See [skills/do/references/model-routing.md](skills/do/references/model-routing.md) for the tier table and rationale.
 
-## Skills (19)
+## Skills (21)
 
-Antigravity exposes every skill as a slash command. The text typed after the command is the skill's input.
+Antigravity exposes every skill as a slash command (`/do`); agy also accepts and shows the namespaced form `/assist-plugin:<name>` (observed on agy 1.3.3). The text typed after the command is the skill's input.
 
 | Skill | Command | Purpose |
 |-------|---------|---------|
@@ -75,6 +75,8 @@ Antigravity exposes every skill as a slash command. The text typed after the com
 | **task-plan** | `/task-plan <spec-file-or-prompt> [target-language]` | Generate ordered coding steps from feature specs |
 | **create-test** | `/create-test [spec-file \| feature-name] [language]` | Create black-box tests from acceptance criteria only |
 | **deslop** | `/deslop [edit \| detect] <file-or-text>` | Remove AI writing tells from prose; edit returns cleaned text, detect lists findings |
+| **voice-script** | `/voice-script [topic \| draft-file]` | Paste-ready TTS script with the chosen model's own tags and style field, saved to `docs/tts/`; live OpenRouter check only on request |
+| **clarify** | `/clarify [what is unclear]` | Explain unclear points in the agent's output with evidence, ask the user the rest, and log both to `.agent/clarify/` |
 | **code** | (internal; preloaded by developer) | Language/framework standards, logging, error-handling, traceability conventions |
 | **pentest** | (internal; preloaded by qa) | Security testing: OWASP Top 10, LLM OWASP Top 10, dependency audit |
 | **integrated-test** | (internal; preloaded by qa) | Integration/E2E testing with Playwright, container patterns, Playwright availability check |
@@ -102,5 +104,5 @@ Antigravity exposes every skill as a slash command. The text typed after the com
 - **Testing:** >=70% coverage required for new code
 - **Review:** Code reviewer sign-off required before merge
 - **LLM security:** OWASP Top 10 for LLM review on changes to agents, skills, rules, context files, and plugin config
-- See [rules/assist-plugin-rule.md](rules/assist-plugin-rule.md) and [rules/llm-security-checklist.md](rules/llm-security-checklist.md); [rules/assist-routing.md](rules/assist-routing.md) is the always-on routing rule
+- See [rules/assist-plugin-rule.md](rules/assist-plugin-rule.md) and [rules/llm-security-checklist.md](rules/llm-security-checklist.md); [rules/assist-routing.md](rules/assist-routing.md) is the always-on routing rule and carries the one-line no-AI-attribution reminder
 

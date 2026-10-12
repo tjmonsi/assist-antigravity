@@ -28,7 +28,7 @@ Tier values are for the shipped `gemini` profile; see [model-routing.md](model-r
 | **code-reviewer** | Formal line-by-line review; critical sign-off; architectural evaluation | review (`pro`) | read | "formal review", "critical change approval", "senior review needed" |
 | **explore** | Code search; find definitions; grep symbols; locate callers | fast (`flash`) | read | "find where X defined", "who calls this", "search for pattern" |
 | **general-purpose** | Ad-hoc analysis and experimentation the task names; takes a step only when it matches, never as a fallback | build (`flash`) | read, edit, shell | "try this experiment", "do an ad-hoc analysis of X" |
-| **worker** | Multi-discipline: code + test + review combined for small features | build (`flash`) | read, edit, shell | "implement and test", "quick fix with tests", "add logging to X" |
+| **worker** | Multi-discipline: code and tests together for small features; `/do` still runs the review gates after it | build (`flash`) | read, edit, shell | "implement and test", "quick fix with tests", "add logging to X" |
 
 ---
 
@@ -105,7 +105,7 @@ Is it about RESEARCH/DISCOVERY?
   └─ Learn best practices? → researcher
 
 Is it about MULTI-DISCIPLINE or SMALL TASKS?
-  ├─ Code + test + review combined? → worker
+  ├─ Code and tests together for a small feature (review gates still run)? → worker
   └─ Ad-hoc analysis or experimentation the user asked for by name? → general-purpose
 
 No clear match?

@@ -123,7 +123,7 @@ Fixtures, builders, and helpers count as test paths only when they sit under one
 Four denials apply even when a glob above matches. Antigravity loads `AGENTS.md`, `GEMINI.md`, and anything under `.agents/` into later sessions, and other agent tools working in the same repo load `CLAUDE.md`, so a test-path write there would plant instructions: <!-- claude-ref-ok -->
 
 - Any path with a segment that starts with `.` (`.agents/tests/x.test.ts`, `tests/.hidden/a.test.js`).
-- Any file named `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md`, at any depth (`tests/AGENTS.md`). <!-- claude-ref-ok -->
+- Any file named `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md`, at any depth (`tests/AGENTS.md`). Compare these names without regard to case. <!-- claude-ref-ok -->
 - A path longer than 4096 characters.
 - A path that contains a NUL character.
 

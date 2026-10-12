@@ -67,6 +67,7 @@ Creates or updates `CHANGELOG.md` with:
 ### 5. Commit & Tag (optional)
 
 - Commits with message: `chore: bump version to X.Y.Z`
+- The message carries no AI attribution: no `Co-Authored-By` line for an AI tool and no "Generated with" line. Human co-authors are fine. See the No AI Attribution Rule in `rules/assist-plugin-rule.md`.
 - Tags with `vX.Y.Z` (or `release-X.Y.Z` if found in existing tags)
 - Both commit and tag are optional via flags
 
@@ -98,6 +99,7 @@ See [references/bump-strategy.md](references/bump-strategy.md) for:
 - Requires at least one commit since last version/tag
 - Cannot bump if current version matches HEAD tag (already released)
 - Creates changelog in project root or `--path` directory
+- Never adds a `Co-Authored-By` trailer or other attribution line for an AI tool to the bump commit, the tag message, or the changelog
 
 ## Examples
 

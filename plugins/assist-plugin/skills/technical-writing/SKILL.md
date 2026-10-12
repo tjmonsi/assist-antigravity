@@ -74,6 +74,10 @@ Outputs:
 - Error codes
 - Authentication
 
+## Write scope
+
+Write `README.md` at the workspace root without asking. Before writing any other path, including files under `docs/`, name the path and confirm it with the user (`ask_question`). When developer runs this skill under `/do`, the step's approved Writes are that confirmation; list any other path in `out_of_scope`. Nothing enforces this list.
+
 ## Output Format
 
 Uses Markdown with:

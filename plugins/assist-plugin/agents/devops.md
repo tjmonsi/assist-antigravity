@@ -43,6 +43,10 @@ Configures CI/CD pipelines, provisions infrastructure with Terraform/Docker, aut
 - Architecture (route to planner)
 - Testing (route to qa)
 
+## Write scope
+
+Never write `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` at any depth, or any path with a `.agents` segment. Compare these names without regard to case. Antigravity loads these into later sessions, and other agent tools load `CLAUDE.md`, so a write there would plant instructions. A step that needs one is out-of-scope work: list the path in `out_of_scope`, write nothing there, and finish the rest. <!-- claude-ref-ok -->
+
 ## Report Writing Standard
 
 - Put the answer or the most important finding first. No preamble, no restating the question, no closing recap.

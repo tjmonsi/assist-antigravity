@@ -20,10 +20,10 @@ assist-plugin/
 ├── README.md                  # plugin quick reference
 ├── CHANGELOG.md, LICENSE, NOTICE
 ├── agents/<name>.md           # 15 subagents (subagent: true, model, tools, commandExecutionPolicy)
-├── skills/<name>/SKILL.md     # 19 skills, each exposed as /<name>
+├── skills/<name>/SKILL.md     # 21 skills, each exposed as /<name>
 │   └── references/            # progressive-disclosure detail loaded on demand
 ├── rules/
-│   ├── assist-routing.md      # trigger: always_on (route actionable work to /do)
+│   ├── assist-routing.md      # trigger: always_on (route actionable work to /do, plus the no-AI-attribution reminder)
 │   ├── assist-plugin-rule.md  # trigger: model_decision (governance gates)
 │   ├── llm-security-checklist.md  # trigger: model_decision (OWASP Top 10 for LLM)
 │   ├── writing-standard.md    # trigger: model_decision (full writing rules)

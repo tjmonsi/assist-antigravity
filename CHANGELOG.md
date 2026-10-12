@@ -4,6 +4,59 @@ All notable changes to assist-antigravity are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versions track the upstream [`assist-plugin`](https://github.com/tjmonsi/assist-marketplace-plugin) release they are ported from, with an `-antigravity` suffix. Upstream history before the port is in [`plugins/assist-plugin/CHANGELOG.md`](plugins/assist-plugin/CHANGELOG.md).
 
+## [1.10.0-antigravity] - 2026-10-12
+
+Synced with upstream assist-plugin v1.10.0 (25370a2), with fixes for the defects found in a live agy 1.3.3 test of 1.9.0-antigravity. Not yet verified live: `/voice-script` and `/clarify` loading as slash commands, `ask_question` rendering their menus and a markdown table in the `/do` approval question, the `date` call through `run_command`, and the always-on attribution reminder loading.
+
+### Added
+
+- `/voice-script [topic | draft-file]`: writes a paste-ready text-to-speech script for a chosen TTS model with only that model's own tags and style field, saved to `docs/tts/voice-<slug>-YYYYMMDD-HHmm.md`. It ships 19 dated model reference files and an output template. It uses its built-in catalog (verified 2026-10-12) and fetches OpenRouter's speech-model list with `read_url_content` only when the user asks, reading only each model's id and endpoint path. Menus use `ask_question` with 2 to 4 options and the built-in write-in; a skipped question stops the run.
+- `/clarify [what is unclear]`: explains unclear points in the agent's last output with evidence, asks the user about points only the user can settle with `ask_question`, and appends both to `.agent/clarify/clarify-YYYYMMDD.md` with `replace_file_content` on an end marker. It never writes `/do` plan files or `DECISIONS.md`. The plugin now has 21 skills (17 user-facing, 4 internal).
+- No AI Attribution Rule in `rules/assist-plugin-rule.md` (commit messages, tag messages, and PR bodies), with the rule in its `description` so it loads when committing, and a one-line always-on reminder in `rules/assist-routing.md` (1,219 bytes; the always-on rules now total 2,723 bytes).
+- `scripts/validate.py` Claude-ism warnings for `commit-attribution-guard`, `assist-plugin:health`, `attribution.commit` and `attribution.pr`, `hooks-disabled.json`, `Edit(...)`, `Write(...)`, and `Read(...)` permission rules, and "through Other".
+- AGENTS.md sync-table rows for `WebFetch(domain:...)`, `Edit(./path)` rules, the AskUserQuestion "Other" option, Claude Code attribution settings, and "never forks".
+
+### Changed
+
+- `/commit`: "No AI Attribution" covers `*-Session:` trailers and bare AI session links; human co-authors are fine. The message-file check uses a wider `grep` (trailers with leading space, session trailers, and an unanchored "Generated with/by" footer), asks for a read of every printed line, amends with a new message file when a line slipped through, and stops to ask when a line names a person the user asked to credit. The section is renamed "Removing AI Attribution".
+- `/bump` and `bump-strategy.md`: the bump commit and the tag message carry no AI attribution.
+- `gather-requirements`, `spec-from-requirements`, and `technical-writing` state their write scope as text: the paths each writes, confirmation with `ask_question` (or the approved Writes under `/do`, or `out_of_scope` in a subagent) for any other path, and no claim that anything enforces the list.
+- `rules/writing-standard.md` Exemptions: voice scripts keep their text in fenced `text` blocks, so the Code exemption covers em dashes and ellipses used as pause marks.
+- worker is described as writing code and tests together; `/do` still runs the review gates after it (`agents/worker.md`, `agent-registry.md`, plugin README).
+- Fast-Track Review in `review-protocol.md` and `assist-plugin-rule.md`: `/do` never decides on its own that a change is low-risk. A step skips the Security Gate or the Code Review Gate only when the user asked for that skip in the prompt or an edit and `/do` listed it in the approval question as "Step N skips GATE (you asked)"; the Pre-Test Code Review Gate and the Testing Gate always run for a step that changes code.
+- Docs and counts: 21 skills in `plugin.json`, both READMEs (skill rows, Differences rows for commit attribution, document-skill write scope, the voice-script live check, and context-file writes, and `commit-attribution-guard` in the Hooks row), SPECIFICATION (voice-script and clarify sections), ARCHITECTURE, and TOKEN_OPTIMIZATION. `AGENTS.md` names upstream v1.10.0 and adds the attribution guard and the failing-hook reason to the hooks row. `plugin.json` `version` is 1.10.0; NOTICE files name upstream v1.10.0.
+
+### Fixed
+
+- `/do` skipped every review gate on a worker step, ran the tests itself, and wrote gate results no reviewer produced. `review-protocol.md` adds worker and general-purpose to the agents that receive review; `/do` says a producer's own tests or self-review never replace a gate; new Constraints forbid running project code, tests, or builds in the main agent and writing a gate result without the reviewer's terminal block; `plan-format.md` writes each gate line only from the reviewer's `verdict` and never ticks "User approved final result".
+- `/do` polled transcripts, set timers, and told the user a denied subagent command was running. A "Subagent command permissions" paragraph gives the one message to show, forbids polling and timers, and keeps the step's `skipped:` markers.
+- `/deslop` ran shell commands with the pasted text embedded and searched the home directory to fact-check it. A Hard rule forbids `run_command`, putting the target text in a command or file, and searching files or the web.
+- `/deslop` edit dropped a correction ("not the Y the plan described") and cut a list item to its label. `structural-tells.md` keeps a departure from a named plan or earlier statement, and pass 3 reverts a list item cut to its label.
+- The `/do` approval question showed no plan table on agy 1.3.3. The full step table and Order line now go at the start of the `ask_question` text.
+- The plan file name had no timestamp format, and a same-day rerun overwrote the earlier plan. Plan files are `plan-[slug]-[YYYYMMDD-HHmmss].md` and are never overwritten (`-2`, `-3`).
+- `/do` ran a bare `git rev-parse` first and passed `"Model": "inherit"` to `invoke_subagent`. SKILL.md gives the exact first git call and says to leave the `Model` key out entirely.
+- `/ask` linked absolute `file://` paths. The visible text is now the relative repo path; the link target may use the host's form.
+- README said skills load without a plugin prefix; agy 1.3.3 also accepts and shows `/assist-plugin:<name>`. README also records that agy 1.3.3 neither shows nor waits for a subagent's shell permission request (denied after about 60 seconds), and what to do when `/deslop` ends without a reply.
+- `scripts/validate.py` printed nothing and exited 0 when the sync script called `sys.exit()` on import; it now catches `SystemExit` at the load and call sites and reports an ERROR.
+- `scripts/validate.py` closed a fence on any fence-like line, so a four-backtick block holding a three-backtick block flipped prose and code. It now tracks the fence character and length (CommonMark).
+- `/do` write-path check: a workspace under a folder named `test` put every developer write under a test glob. The test globs now apply to the workspace-relative path.
+- `/do` treated a missing `git` command as a generic `git-error`. Ingest has a `git-missing` outcome (Error(tool-missing)); a later git command that reports `git` missing stops the run as a tripped config guard does (Paused).
+- `review-protocol.md` said "prefixed excludes", but the prefix is never put into a command; it now says "output filtering".
+
+### Security
+
+- developer, devops, and worker never write `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` at any depth or a path with a `.agents` segment; a step that needs one lists it in `out_of_scope`. The `/do` write-path check treats such a path as out of bounds for those agents even when the approved Writes list it, judged on the workspace-relative path.
+- `/voice-script` fetches nothing unless the user asks; `read_url_content` has no domain limit, so the skill's Fetch scope rule names the only two URL shapes and the endpoint-path pattern, and the reply is untrusted vendor text.
+- `llm-security-checklist.md`: LLM01 surfaces for `/voice-script` and `/clarify`, an LLM05 surface and verification item for skills that take pasted text and run no command (`/deslop`), and technical-writing asking before any path other than `README.md`. The file stays under the 24,000-byte limit (23,937 bytes) by tightening the `scripts/` note, the pr-review bullet, the Merge Gate path list (now a pointer to the When triggered list), and the Open Gaps preamble.
+
+### Removed
+
+- Deliberately not ported from upstream v1.10.0:
+  - `commit-attribution-guard` hook and `hooks.json`. The guard needs no agent identity, but agy documents no pass-through decision for a command it does not match (`allow` auto-approves, `ask` prompts), and user reports show a failing PreToolUse hook blocking every tool call. The rule ships as text.
+  - Claude Code `attribution.commit` and `attribution.pr` guidance and the `health` attribution report: agy adds no attribution line, and the port ships no `health` skill.
+  - The prose-hook `docs/tts/` exemption (the port has no prose hooks; fenced blocks cover voice scripts) and upstream's `shell-program.js` refactor of `doc-cli-guard`.
+  - `metadata.json` files with scoped `Edit(...)`, `WebFetch(domain:...)`, and `Bash(date ...)` grants; the write scopes are skill text.
+
 ## [1.9.0-antigravity] - 2026-10-12
 
 Synced with upstream assist-plugin v1.9.0 (09ea02d). Not yet verified live: the `intake-reviewer` subagent, whether a full terminal block reaches `/do`, the `NeedsInput` relay with `send_message`, the post-step write-path check, and a `/do` run end to end.

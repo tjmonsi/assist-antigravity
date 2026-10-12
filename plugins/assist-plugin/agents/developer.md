@@ -72,6 +72,8 @@ The agent is a finite-state automaton (rules T1 to T9 in [fsa-template.md](../sk
 
 The developer never writes test paths. Tests belong to `developer-tester`. The globs that define a test path are in [developer-tester Write scope](developer-tester.md#write-scope). A plan step that lists a test path, or edit work that needs one, is out-of-scope work. The agent does not stop: it lists each path in the block's `out_of_scope` field, names it in the prose above the block, and finishes the rest of the work. `/do` records the path as a new request for `developer-tester`. Never retry a test path under another name.
 
+Never write `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` at any depth, or any path with a `.agents` segment. Compare these names without regard to case. Antigravity loads these into later sessions, and other agent tools load `CLAUDE.md`, so a write there would plant instructions. A step that needs one is out-of-scope work: list the path in `out_of_scope`, write nothing there, and finish the rest. <!-- claude-ref-ok -->
+
 ### SelfCheck commands
 
 - Run each command with `run_command` (this agent's `commandExecutionPolicy` is `sandbox`).
@@ -81,7 +83,7 @@ The developer never writes test paths. Tests belong to `developer-tester`. The g
 
 ### Terminal block
 
-The final message ends with this block ([fsa-template.md](../skills/do/references/fsa-template.md#terminal-block)). `verdict` is `self-check=pass` when every check that ran passed and the code-slop checklist is clean, `self-check=not-run` when no test or lint command ran, else `self-check=fail`. `out_of_scope` lists each test path the work needs, else `none`. `questions` stays `none` on `Done`. `artifact` lists the files created or modified.
+The final message ends with this block ([fsa-template.md](../skills/do/references/fsa-template.md#terminal-block)). `verdict` is `self-check=pass` when every check that ran passed and the code-slop checklist is clean, `self-check=not-run` when no test or lint command ran, else `self-check=fail`. `out_of_scope` lists each test path and each context-file path the work needs, else `none`. `questions` stays `none` on `Done`. `artifact` lists the files created or modified.
 
 ```fsa
 fsa: developer/1

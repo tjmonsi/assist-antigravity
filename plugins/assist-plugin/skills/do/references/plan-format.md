@@ -4,6 +4,8 @@ Template and format for execution plans created by the `do` orchestrator.
 
 ## Plan Structure
 
+File name: `.agent/main-plan/plan-[slug]-[YYYYMMDD-HHmmss].md` (for example `plan-auth-20261012-160412.md`). Never overwrite an existing plan file; if the name exists, add `-2`, `-3`.
+
 ```markdown
 # Execution Plan: [Task Slug]
 
@@ -149,7 +151,7 @@ The intake-reviewer's findings for each user-provided file, shown to the user at
   - `failed`: the agent ended in `Error`, sent no terminal block after one retry, reached a relay maximum (3 in one phase or 10 in total), or left review findings unresolved after the gate's binding code-reviewer pass
   - `skipped`: a step it depends on failed. An intake review step that fails skips nothing
 - **Done:** Completion timestamp + summary (added by orchestrator when the step finishes). A `failed` step records its `error_class` and reason here. A `skipped` step records "Skipped: depends on failed step N". Any `skipped:` marker from the agent's terminal block is copied here.
-- **Review:** Review outcome if applicable (LGTM, Revision requested, N/A), plus each write-path finding (path and rule) from the post-step check
+- **Review:** Review outcome if applicable (LGTM, Revision requested, N/A), plus each write-path finding (path and rule) from the post-step check. It never holds a gate skip: an approved skip ("Step N skips GATE (you asked)") is recorded under `## User Decisions` at Approve
 - **Out of scope:** Work the agent reported in `out_of_scope` but may not do. The orchestrator does not dispatch it; Display raises it as a new request.
 
 ### Writing the Summary and Details Fields
@@ -164,6 +166,8 @@ The intake-reviewer's findings for each user-provided file, shown to the user at
 - **Security (OWASP):** Must pass OWASP top 10 checks (reviewed by `reviewer` or `code-reviewer`)
 - **Testing (>=70% coverage):** Code coverage must meet minimum (validated by `qa`)
 - **Code Review (sign-off):** Formal approval required (from `code-reviewer`)
+
+Each gate line is written only from the gate reviewer's `verdict`; otherwise `not-run`. The orchestrator never ticks "User approved final result".
 
 ---
 
