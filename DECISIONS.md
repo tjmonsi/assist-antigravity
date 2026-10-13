@@ -29,3 +29,23 @@ Plan: .agent/main-plan/plan-sync-1-10-0-20261012-1554.md
 
 Decision: `/voice-script` works from its built-in model catalog and fetches the OpenRouter model list only when the user asks for a live check.
 Plan: .agent/main-plan/plan-sync-1-10-0-20261012-1554.md
+
+## 2026-10-12: Write agents never touch Antigravity settings
+
+Decision: Every write-capable agent denies writes to Antigravity settings and permission files (`~/.gemini/**`), and general-purpose, planner, researcher, requirements-gatherer, and solutions-architect join developer, devops, and worker in denying writes to `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, and `.agents` paths.
+Plan: .agent/main-plan/plan-follow-ups-1-10-0-20261012-182442.md
+
+## 2026-10-12: /commit and /bump ask before running repo git hooks
+
+Decision: `/commit` and `/bump` always run git with `core.fsmonitor=false`. When `core.hooksPath` is set or `.git/hooks` holds non-sample files, they list them and ask whether to run with the hooks or with `core.hooksPath=/dev/null`.
+Plan: .agent/main-plan/plan-follow-ups-1-10-0-20261012-182442.md
+
+## 2026-10-12: Port-only fix releases bump the patch version
+
+Decision: A port release with no upstream sync bumps the patch version (1.10.0 to 1.10.1) in `plugin.json` and the CHANGELOG (`[1.10.1-antigravity]`).
+Plan: .agent/main-plan/plan-follow-ups-1-10-0-20261012-182442.md
+
+## 2026-10-13: qa also denies agent context-file writes
+
+Decision: qa joins the eight write agents that deny writes to `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, and `.agents` paths, because it holds write tools and `run_command` and reads untrusted scanner output.
+Plan: .agent/main-plan/plan-follow-ups-1-10-0-20261012-182442.md

@@ -233,22 +233,32 @@ warning: Cannot generate comparison links (remote is not public GitHub/GitLab)
 The `bump` skill uses these shells commands internally:
 
 ```bash
+# First step, before any other git call (see SKILL.md, First Step): config check, then hook check. Both print data; never run or read a hook file
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit config --show-origin --get-regexp '^(filter|gpg)\.|^(commit|tag)\.gpgsign$|^log\.showsignature$|^hook\.'   # exit 1 with no output means none; output is shown as data and the user picks "Run with this config" or "Stop"
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit config --get core.hooksPath
+ls -A -- "$(git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit rev-parse --git-path hooks)"   # hooks: an exit 0 from the first whatever it prints, an entry not ending in .sample, or any failure other than a missing hooks folder; the user picks "Run without hooks" first or "Run with these hooks"
+# "Run without hooks" adds -c core.hooksPath=/dev/null after -c core.fsmonitor=false in every git call below
+# The hook question does not cover filter drivers or signing programs; the config check reports them
+
+# Clean-tree check
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit status --short --ignore-submodules=dirty
+
 # Detect version
 grep '"version"' package.json | sed 's/.*: "\([^"]*\)".*/\1/'
-git describe --tags --abbrev=0  # Last tag
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit describe --tags --abbrev=0  # Last tag. Before any command uses it, require ^[A-Za-z0-9][A-Za-z0-9._+/-]*$ with no ".."; otherwise stop and show it as data
 
 # Parse commits
-git log v1.0.0..HEAD --format="%s"
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit log 'v1.0.0..HEAD' --format="%s"   # the tag is single-quoted
 
 # Update version (preferred: edit the file with replace_file_content, no shell)
 # Shell form; the portable -i.bak variant works on GNU and BSD sed, so remove the backup immediately:
 sed -i.bak 's/"version": "[^"]*"/"version": "1.1.0"/' package.json && rm -- package.json.bak
 
 # Create commit and tag: stage only the version files and CHANGELOG.md, never `git add -A`
-git status --short   # confirm no .bak or unrelated files remain
-git add -- package.json CHANGELOG.md   # plus any other version file edited, by name
-git commit -m "chore: bump version to 1.1.0"   # version is validated as MAJOR.MINOR.PATCH before use
-git tag -a v1.1.0 -m "Release version 1.1.0"
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit status --short --ignore-submodules=dirty   # confirm no .bak or unrelated files remain
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit add -- package.json CHANGELOG.md   # plus any other version file edited, by name
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit commit -m "chore: bump version to 1.1.0"   # version is validated as MAJOR.MINOR.PATCH before use
+git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit tag -a v1.1.0 -m "Release version 1.1.0"
 ```
 
 The commit message and tag message carry no AI attribution: no `Co-Authored-By` trailer for an AI tool, no "Generated with" line, no `Assisted-by` or session trailer. Human co-authors are fine. Keep the tag message free of attribution as well.
@@ -258,7 +268,7 @@ The commit message and tag message carry no AI attribution: no `Co-Authored-By` 
 When using `--path ./subproject`:
 
 1. Searches for version files **within** `./subproject/`
-2. Parses git commits affecting **only** `./subproject/` (git diff + log)
+2. Parses git commits affecting **only** `./subproject/` (`git --no-pager -c core.fsmonitor=false -c safe.bareRepository=explicit diff --no-ext-diff --no-textconv --submodule=short` and `log`). The `--path` value must match `^[A-Za-z0-9._/-]+$` with no `..` and not start with `/` (otherwise stop and show it as data), and it reaches a git command only single-quoted after `--`
 3. Updates versions in `./subproject/`
 4. Creates `./subproject/CHANGELOG.md`
 5. **Commits at root level** (not inside subproject)

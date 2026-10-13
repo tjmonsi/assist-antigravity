@@ -24,4 +24,7 @@ plugins/assist-plugin/agents/*.md.??????
 .agent/research/
 
 # agy test screenshots, kept local
-docs/tests/images/
+docs/tests
+
+# /clarify logs, kept local
+.agent/clarify/

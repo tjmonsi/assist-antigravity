@@ -5,13 +5,12 @@ description: "OWASP Top 10 for LLM checklist for assist-plugin prompt surfaces: 
 
 # OWASP Top 10 for LLM: assist-plugin Security Checklist
 
-Companion to [assist-plugin-rule.md](assist-plugin-rule.md). The existing OWASP checklist covers
-application code. This one covers the **prompt surface**: agent definitions, skill definitions,
-routing logic, and model invocation.
+Companion to [assist-plugin-rule.md](assist-plugin-rule.md), whose OWASP checklist covers
+application code. This one covers the **prompt surface**: agent and skill definitions, routing
+logic, and model invocation.
 
-**Scope note:** In assist-plugin, the markdown files under `agents/` and `skills/` are not
-documentation. They are executable instructions handed to a model with tool access. Review them
-with the same rigor as production code.
+**Scope note:** The markdown files under `agents/` and `skills/` are executable instructions
+handed to a model with tool access, not documentation. Review them as production code.
 
 **When triggered:** Any change to `agents/*.md`, `skills/**/SKILL.md`, `skills/**/references/*.md`,
 `rules/*.md`, `AGENTS.md`/`GEMINI.md`, `plugin.json`, `hooks.json`, `mcp_config.json`, or
@@ -92,7 +91,7 @@ review comments posted to third-party platforms, or outbound web requests.
 **assist-plugin attack surface:**
 
 - `skills/commit/SKILL.md` stages only user-named paths (or a list confirmed with `ask_question`)
-  and never stages `.env*`, `*.pem`, `*.key`, or `id_*` unconfirmed. It previously ran `git add .`.
+  and never stages `.env*`, `*.pem`, `*.key`, or `id_*` unconfirmed.
 - User-level command auto-approval in Antigravity (an allowlist entry or a permissive command
   execution setting covering `git add` and `git push`) combined with the above lets an agent stage
   a secret and push it to a remote with no permission prompt. Subagents inherit the parent's
@@ -131,11 +130,14 @@ permissions.
   anyone installing inherits every prompt in `plugin.json`'s tree.
 - Supply-chain note (not a gate trigger): this repository's `scripts/install.sh` copies the plugin into `~/.gemini/config/plugins/` or
   `<workspace>/.agents/plugins/`. A modified script can write outside those locations or fetch and
-  run remote code. It resolves physical paths and refuses workspace targets that escape the workspace through symlinks.
+  run remote code. It resolves physical paths and refuses workspace targets that escape through symlinks.
 - `hooks.json` and `mcp_config.json` run commands or connect servers outside any agent's `tools`
   list. This plugin ships neither; adding one widens the executable surface.
 - `skills/pr-review/SKILL.md` shells out to `gh` and `bkt`; `skills/bump/SKILL.md` and
-  `skills/commit/SKILL.md` shell out to `git`. None pin or verify the binary.
+  `skills/commit/SKILL.md` shell out to `git` with `-c core.fsmonitor=false -c
+  safe.bareRepository=explicit`, check repo config and hooks first, and ask before running repo
+  hooks. The hook question does not cover filter drivers or signing programs; the config check
+  reports them. None pin or verify the binary.
 - Subagent names can collide with another installed plugin's or workspace's subagents (for example
   a second `developer` in `.agents/agents/`), creating a routing-hijack path.
 
@@ -199,12 +201,12 @@ without escaping. This is the bridge that turns prompt injection into command ex
 
 **assist-plugin attack surface:**
 
-- `skills/pr-review/SKILL.md` and `references/review-workflow.md` now write the confirmed draft to a
+- `skills/pr-review/SKILL.md` and `references/review-workflow.md` write the confirmed draft to a
   per-run file under `.agent/tmp/` and pass `--body-file` / `--message-file`. Interpolating
   model-composed text into a shell string (`--body "..."`) would execute any backtick or `$(...)`
   derived from an attacker-controlled PR body. The skill stops and asks when a command has no file flag.
 - `skills/commit/SKILL.md` writes the message to a per-run `.agent/tmp/` file and runs
-  `git commit -F <file>`; it no longer builds `git commit -m "$(...)"`.
+  `git commit -F <file>`, never `git commit -m "$(...)"`.
 - `skills/branch/SKILL.md` composes branch names passed to `git checkout -b`.
 - Antigravity skills carry no tool restrictions; every skill runs on the main agent with its full
   tool set, including `run_command`. Shell scope rests on the skill body's instructions.
@@ -235,15 +237,13 @@ successful injection has a large blast radius.
 - Every file in `agents/` declares a `tools` list and a `commandExecutionPolicy`. `reviewer`,
   `code-reviewer`, `intake-reviewer`, `explore`, `ask`, `planner`, `requirements-gatherer`,
   `developer-tester`, and `solutions-architect` have no `run_command` and
-  `commandExecutionPolicy: off`. A wrong or widened
-  `tools` list silently restores excess agency.
+  `commandExecutionPolicy: off`. A wrong or widened `tools` list silently restores excess agency.
 - Five agents hold `run_command` with `commandExecutionPolicy: sandbox`: `developer`, `devops`,
   `general-purpose`, `qa`, `worker`. `researcher` holds no shell because it reads untrusted web
   content (LLM01), and `validate.py` rejects `run_command` with any other policy.
 - All 15 agents set `mainAgent: false` (`validate.py` enforces it): none holds `invoke_subagent` or
   `ask_question`, so none can run as the chat's primary agent. `/do` is the entry point.
-- Subagents inherit the parent's sandbox and permission settings, so a permissive user setting
-  widens every delegated agent at once.
+- Subagents inherit the parent's sandbox and permission settings (see LLM02).
 - `skills/do/SKILL.md` Dispatch starts independent steps as concurrent subagents through
   `invoke_subagent`, so delegated work executes with no intervening human checkpoint. Subagents can
   nest up to 10 levels if an agent is granted `invoke_subagent` (antigravity.google/docs/subagents/).

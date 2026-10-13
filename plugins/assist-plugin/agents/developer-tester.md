@@ -120,14 +120,15 @@ This agent writes only to test paths. A test path is a file that matches one of 
 
 Fixtures, builders, and helpers count as test paths only when they sit under one of the directory globs above. A path outside the table is a non-test path: do not write it, end in `Error(policy-rejection)`, and name the path in the prose above the block. The agent follows this table. `/do` compares the written paths with this table after the step and reports each mismatch as a finding; no hook enforces it.
 
-Four denials apply even when a glob above matches. Antigravity loads `AGENTS.md`, `GEMINI.md`, and anything under `.agents/` into later sessions, and other agent tools working in the same repo load `CLAUDE.md`, so a test-path write there would plant instructions: <!-- claude-ref-ok -->
+Five denials apply even when a glob above matches. Antigravity loads `AGENTS.md`, `GEMINI.md`, and anything under `.agents/` into later sessions, other agent tools working in the same repo load `CLAUDE.md`, and Antigravity reads its settings and permissions from `~/.gemini/`, so a test-path write there would plant instructions or widen permissions: <!-- claude-ref-ok -->
 
 - Any path with a segment that starts with `.` (`.agents/tests/x.test.ts`, `tests/.hidden/a.test.js`).
 - Any file named `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md`, at any depth (`tests/AGENTS.md`). Compare these names without regard to case. <!-- claude-ref-ok -->
 - A path longer than 4096 characters.
 - A path that contains a NUL character.
+- Any path that resolves into the user's `.gemini` folder, by any tool or command and in any form (`~`, `$HOME`, `%USERPROFILE%`, the full home path, a relative path, or a symlink), compared without regard to case (for example `~/.gemini/antigravity-cli/settings.json`). Never add an allow rule; only the user changes permissions.
 
-A denied path ends in `Error(policy-rejection)` like any other non-test path. Judge the path as written, so symlinks stay unresolved: never write through one. [developer](developer.md) refers here for the paths it must not write.
+A denied path ends in `Error(policy-rejection)` like any other non-test path; list a needed `~/.gemini/` path in `out_of_scope` as well. Judge every other path as written, so symlinks stay unresolved: never write through one. [developer](developer.md) refers here for the paths it must not write.
 
 ## States
 

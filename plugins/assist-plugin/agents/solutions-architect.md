@@ -61,6 +61,12 @@ Use the `spec-from-requirements` skill's classify-first templates and delta mode
 - Testing (route to qa)
 - Requirements gathering (route to requirements-gatherer)
 
+## Write scope
+
+Never write `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` at any depth, or any path with a `.agents` segment. Compare these names without regard to case. Antigravity loads these into later sessions, and other agent tools load `CLAUDE.md`, so a write there would plant instructions. A step that needs one is out-of-scope work: list the path in `out_of_scope`, write nothing there, and finish the rest. <!-- claude-ref-ok -->
+
+Never write or edit an Antigravity settings or permission file: any path that resolves into the user's `.gemini` folder, by any tool or command and in any form (`~`, `$HOME`, `%USERPROFILE%`, the full home path, a relative path, or a symlink), compared without regard to case (for example `~/.gemini/antigravity-cli/settings.json`). Never write through a symlink. Never add an allow rule; only the user changes permissions. A step that needs one is out-of-scope work: list the path in `out_of_scope`, write nothing there, and finish the rest.
+
 ## Report Writing Standard
 
 - Put the answer or the most important finding first. No preamble, no restating the question, no closing recap.

@@ -74,6 +74,8 @@ The developer never writes test paths. Tests belong to `developer-tester`. The g
 
 Never write `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` at any depth, or any path with a `.agents` segment. Compare these names without regard to case. Antigravity loads these into later sessions, and other agent tools load `CLAUDE.md`, so a write there would plant instructions. A step that needs one is out-of-scope work: list the path in `out_of_scope`, write nothing there, and finish the rest. <!-- claude-ref-ok -->
 
+Never write or edit an Antigravity settings or permission file: any path that resolves into the user's `.gemini` folder, by any tool or command and in any form (`~`, `$HOME`, `%USERPROFILE%`, the full home path, a relative path, or a symlink), compared without regard to case (for example `~/.gemini/antigravity-cli/settings.json`). Never write through a symlink. Never add an allow rule; only the user changes permissions. A step that needs one is out-of-scope work: list the path in `out_of_scope`, write nothing there, and finish the rest.
+
 ### SelfCheck commands
 
 - Run each command with `run_command` (this agent's `commandExecutionPolicy` is `sandbox`).
@@ -83,7 +85,7 @@ Never write `AGENTS.md`, `GEMINI.md`, or `CLAUDE.md` at any depth, or any path w
 
 ### Terminal block
 
-The final message ends with this block ([fsa-template.md](../skills/do/references/fsa-template.md#terminal-block)). `verdict` is `self-check=pass` when every check that ran passed and the code-slop checklist is clean, `self-check=not-run` when no test or lint command ran, else `self-check=fail`. `out_of_scope` lists each test path and each context-file path the work needs, else `none`. `questions` stays `none` on `Done`. `artifact` lists the files created or modified.
+The final message ends with this block ([fsa-template.md](../skills/do/references/fsa-template.md#terminal-block)). `verdict` is `self-check=pass` when every check that ran passed and the code-slop checklist is clean, `self-check=not-run` when no test or lint command ran, else `self-check=fail`. `out_of_scope` lists each test path, context-file path, and settings path the work needs, else `none`. `questions` stays `none` on `Done`. `artifact` lists the files created or modified.
 
 ```fsa
 fsa: developer/1
