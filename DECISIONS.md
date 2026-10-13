@@ -49,3 +49,13 @@ Plan: .agent/main-plan/plan-follow-ups-1-10-0-20261012-182442.md
 
 Decision: qa joins the eight write agents that deny writes to `AGENTS.md`, `GEMINI.md`, `CLAUDE.md`, and `.agents` paths, because it holds write tools and `run_command` and reads untrusted scanner output.
 Plan: .agent/main-plan/plan-follow-ups-1-10-0-20261012-182442.md
+
+## 2026-10-13: /do loads its reference files once and appends decisions at Preflight
+
+Decision: Because agy cuts a skill body at about 24,000 bytes, `/do` keeps Preflight, Dispatch, Display, Cleanup, Constraints, and decision records in `skills/do/references/` and opens all six files once, on first entry to Preflight or Dispatch, ending in Error(tool-failed) if one cannot be opened. The approved architectural decisions are appended to `DECISIONS.md` at the start of Preflight, after `decision-records.md` is open, instead of at Approve.
+Plan: .agent/main-plan/plan-skill-size-fix-20261013-124234.md
+
+## 2026-10-13: /do appends decisions after the Preflight disk check
+
+Decision: Refines the entry above: `/do` appends only this run's approved architectural decisions, after the Preflight free-space check and just before setting `In Progress`, so a stop at the disk prompt leaves `DECISIONS.md` unchanged; it never appends on the direct path or from a resumed plan file.
+Plan: .agent/main-plan/plan-skill-size-fix-20261013-124234.md

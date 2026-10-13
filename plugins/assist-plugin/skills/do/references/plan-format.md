@@ -95,9 +95,9 @@ Order: [one line, for example "1a and 1b in parallel, then 2, then 3"]
   - `Cancelled`: User cancelled at approval or preflight; nothing runs
   - `In Progress`: Executing steps
   - `Complete`: Every step completed
-  - `Partial`: The run ended with at least one `failed` or `skipped` step and no step left to run
-  - `Paused`: The user stopped the run, or the Git config guard tripped; undispatched steps stay `pending`. `resume <plan>` accepts a plan in `Paused` or `In Progress` whose User Decisions record an approval, shows the remaining steps, asks for approval again, and then runs Preflight
-  - `Error`: The plan could not run, for example a dependency cycle or an unmatched agent after two clarify rounds
+  - `Partial`: The run ended with at least one `failed` or `skipped` step, or a step whose Testing Gate ended not-run, and no step left to run
+  - `Paused`: The user stopped the run, the Git config guard tripped, or Hard rule 6's reference text was lost; undispatched steps stay `pending`. `resume <plan>` accepts a plan in `Paused` or `In Progress` whose User Decisions record an approval, shows the remaining steps, asks for approval again, and then runs Preflight
+  - `Error`: The plan could not run, for example a dependency cycle or an unmatched agent after two clarify rounds (`plan-invalid`). A reference file that cannot be opened (`tool-failed`, outcome `ref-unreadable`) ends the run as `Error` without changing the plan file
 - **User:** GitHub username or email of requester
 
 ### Step Table and Order Line
@@ -120,7 +120,7 @@ A wave holds at most 3 steps, and only steps that write non-overlapping files or
 
 ### User Decisions
 
-One bullet per answer the user gave: clarifications, step edits, plan-specific choices, and answers to an agent's `NeedsInput` questions. The first bullet is "Approved: YYYY-MM-DD HH:mm", written at Approve (a plan that skipped approval reads "None (single read-only step, approval skipped)"). `resume` checks for it. The orchestrator records the other answers as they arrive. A waived intake review is a bullet too. Architectural decisions stay in this section until the user approves; then they are appended to `DECISIONS.md` at the target project root (append-only, dated, citing this plan file), and later ones are appended as they arrive.
+One bullet per answer the user gave: clarifications, step edits, plan-specific choices, and answers to an agent's `NeedsInput` questions. The first bullet is "Approved: YYYY-MM-DD HH:mm", written at Approve (a plan that skipped approval reads "None (single read-only step, approval skipped)"). `resume` checks for it. The orchestrator records the other answers as they arrive. A waived intake review is a bullet too. Architectural decisions stay in this section until the user approves; then Preflight appends only this run's decisions, after an Approve in this run, to `DECISIONS.md` at the target project root (append-only, dated, citing this plan file), never decisions read from a resumed plan. Later ones are appended as they arrive.
 
 ### Intake Findings
 
@@ -147,10 +147,10 @@ The intake-reviewer's findings for each user-provided file, shown to the user at
   - `pending`: not started
   - `in_progress`: dispatched and running
   - `waiting-user`: the agent ended in `NeedsInput`; the orchestrator is asking the user. A stop returns it to `pending`
-  - `completed`: the agent ended in `Done` and passed its review gate
+  - `completed`: the agent ended in `Done` and passed its review gate, or its Testing Gate ended `Testing Gate not-run (skipped: command denied)` and the step carries that marker
   - `failed`: the agent ended in `Error`, sent no terminal block after one retry, reached a relay maximum (3 in one phase or 10 in total), or left review findings unresolved after the gate's binding code-reviewer pass
-  - `skipped`: a step it depends on failed. An intake review step that fails skips nothing
-- **Done:** Completion timestamp + summary (added by orchestrator when the step finishes). A `failed` step records its `error_class` and reason here. A `skipped` step records "Skipped: depends on failed step N". Any `skipped:` marker from the agent's terminal block is copied here.
+  - `skipped`: a step it depends on failed, or a step it depends on had its Testing Gate end not-run. An intake review step that fails skips nothing
+- **Done:** Completion timestamp + summary (added by orchestrator when the step finishes). A `failed` step records its `error_class` and reason here. A `skipped` step records "Skipped: depends on failed step N" or "Skipped: Testing Gate of step N not-run". Any `skipped:` marker from the agent's terminal block is copied here.
 - **Review:** Review outcome if applicable (LGTM, Revision requested, N/A), plus each write-path finding (path and rule) from the post-step check. It never holds a gate skip: an approved skip ("Step N skips GATE (you asked)") is recorded under `## User Decisions` at Approve
 - **Out of scope:** Work the agent reported in `out_of_scope` but may not do. The orchestrator does not dispatch it; Display raises it as a new request.
 

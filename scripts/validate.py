@@ -36,6 +36,12 @@ AGENT_REQUIRED_KEYS = ("subagent", "commandExecutionPolicy")
 SKILL_FORBIDDEN_KEYS = {"allowed-tools", "effort", "argument-hint", "user-invocable", "disable-model-invocation"}
 VALID_TRIGGERS = {"always_on", "model_decision", "glob", "manual"}
 RULE_MAX_BYTES = 24000
+# agy 1.3.3 injects a skill's body (the text after the frontmatter) when its slash command runs and
+# cuts it at about 24,000 bytes, marking the cut `<truncated N bytes>`; the model never sees the rest.
+# The error level leaves 2,000 bytes and the warning level 4,000 bytes for agy's own preamble.
+SKILL_BODY_CUT_BYTES = 24000
+SKILL_BODY_MAX_BYTES = 22000
+SKILL_BODY_WARN_BYTES = 20000
 
 CLAUDE_ISMS = [
     ("AskUserQuestion", re.compile(r"AskUserQuestion")),
@@ -409,7 +415,16 @@ def check_skills(root: Path, report: Report) -> None:
         parsed = load_frontmatter(path, report)
         if parsed is None:
             continue
-        fm, _ = parsed
+        fm, body = parsed
+        size = len(body.encode("utf-8"))
+        if size >= SKILL_BODY_MAX_BYTES:
+            report.error(path, f"body after frontmatter is {size} bytes; agy truncates skill bodies at about "
+                               f"{SKILL_BODY_CUT_BYTES} bytes, so keep it under {SKILL_BODY_WARN_BYTES} and move "
+                               "detail to references/")
+        elif size >= SKILL_BODY_WARN_BYTES:
+            report.warn(path, f"body after frontmatter is {size} bytes; agy truncates skill bodies at about "
+                              f"{SKILL_BODY_CUT_BYTES} bytes, so keep it under {SKILL_BODY_WARN_BYTES} to leave "
+                              "room for agy's preamble")
         desc = fm.get("description")
         if not isinstance(desc, str) or not desc.strip():
             report.error(path, "missing or empty 'description'")

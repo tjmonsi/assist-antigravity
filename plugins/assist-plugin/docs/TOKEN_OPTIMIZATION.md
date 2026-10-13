@@ -43,6 +43,7 @@ assist-plugin achieves a ~65% token footprint of the original software-developme
 - `plan-format.md`: Plan template (compact)
 - `review-protocol.md`: Review workflow (essential steps only)
 - `developer-self-review.md`, `fix-phase-rules.md`, `fsa-template.md`, `planning-review-agents.md`, `reviewer-adversarial-reflection.md`, `routing-with-discovery.md`: `do` state-machine, review, and routing rules
+- `preflight.md`, `dispatch.md`, `write-path-check.md`, `display-cleanup.md`, `constraints.md`, `decision-records.md`: `do` state detail opened once, on first entry to Preflight or Dispatch, because agy 1.3.3 cuts a skill body at about 24,000 bytes (`validate.py` reports an ERROR at 22,000 bytes and a WARN at 20,000)
 
 **Why:** Centralized references eliminate duplication and reduce lookup time.
 

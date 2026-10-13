@@ -218,6 +218,11 @@ The orchestrator (`do`) and every other skill run on the model selected in Antig
 - **Format:** Procedural steps + gates
 - **Used by:** `reviewer` agent and orchestrator
 
+### preflight.md, dispatch.md, write-path-check.md, display-cleanup.md, constraints.md, decision-records.md
+- **Source of truth:** `/do` state detail for Preflight, Dispatch (with the write-path check), Display, and Cleanup, the full constraint list, and the `DECISIONS.md` entry procedure
+- **Format:** Procedural rules, all six opened once with `view_file` on first entry to Preflight or Dispatch (Hard rule 6)
+- **Used by:** `do` skill. agy 1.3.3 cuts a skill body at about 24,000 bytes when its slash command runs, so `do/SKILL.md` keeps only Ingest through PlanApproval, the States table, and a Hard rules section
+
 ---
 
 ## Extension Points

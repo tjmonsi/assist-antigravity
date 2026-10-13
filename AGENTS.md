@@ -68,7 +68,8 @@ To remove an agent, delete its file, remove it from the tier table, remove its r
 2. For user-invocable skills, show the command with either a `Usage: /<name> <arguments>` line or a Quick Start/examples block in the body. Internal skills need neither. Refer to user input as "the text after the slash command"; Antigravity documents no `$ARGUMENTS` placeholder.
 3. Internal skills cannot be hidden. Start the description with `Internal: preloaded by the <agent> agent.` and list the skill in that agent's `skills:` frontmatter.
 4. Keep relative links in `references/` resolvable; `validate.py` checks them.
-5. Update every file in the counts checklist below.
+5. Keep the `SKILL.md` body (the text after the closing frontmatter `---`) under 20,000 bytes. agy 1.3.3 injects the body when the user runs the slash command and cuts it at about 24,000 bytes (marked `<truncated N bytes>`), so the model never sees the rest. `validate.py` reports an `ERROR` at 22,000 bytes and a `WARN` at 20,000. Move detail into `references/` files and tell the model, in the kept part, which file to open with `view_file` and when (see `skills/do/SKILL.md` Hard rules).
+6. Update every file in the counts checklist below.
 
 Ship skills only. Antigravity retires workflows on 2026-10-19.
 

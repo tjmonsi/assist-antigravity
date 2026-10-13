@@ -38,7 +38,7 @@ The Write scope lets `developer` write source, config, and docs but not test pat
 | Any other path | The step's producing agent (developer, devops, planner, requirements-gatherer, worker); for a solutions-architect or researcher document, planner or developer (Rule 1) |
 | Missing or failing tests reported by the Testing Gate | `developer-tester` |
 
-A pass with findings of both kinds splits into one fix dispatch per agent, both on the build tier. The developer never adds tests, even when a finding says a test is missing. Findings from `/do`'s post-step write-path check route as the [do skill](../SKILL.md#write-path-check) says.
+A pass with findings of both kinds splits into one fix dispatch per agent, both on the build tier. The developer never adds tests, even when a finding says a test is missing. Findings from `/do`'s post-step write-path check route as the [write-path check](write-path-check.md) says.
 
 ---
 
